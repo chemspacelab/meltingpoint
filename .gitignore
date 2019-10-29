@@ -1,4 +1,6 @@
 
+data/
+statsig/
 chemhelp/
 .pycache/
 _tmp_/

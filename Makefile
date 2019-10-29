@@ -16,6 +16,9 @@ pip: env
 chemhelp:
 	git clone https://github.com/charnley/chemhelp
 
+statsig:
+	git clone https://github.com/jensengroup/statsig
+
 data:
 	mkdir -p data
 
