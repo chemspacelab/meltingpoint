@@ -1,5 +1,6 @@
 
-PYTHON=./env/bin/python
+#PY=./env/bin/python
+PY=anaconda
 CONDA=conda
 
 all: env pip chemhelp
@@ -10,8 +11,8 @@ env:
 	${CONDA} env create -f requirements.yml -p env
 
 pip: env
-	${PYTHON} -m pip install numpy
-	${PYTHON} -m pip install -r requirements.txt --no-cache-dir
+	${PY} -m pip install numpy
+	${PY} -m pip install -r requirements.txt --no-cache-dir
 
 chemhelp:
 	git clone https://github.com/charnley/chemhelp
@@ -24,8 +25,18 @@ data:
 
 #
 
-train:
-	env/bin/python training.py
+structures:
+	${PY} prepare_structures.py
+
+overview:
+	${PY} prepare_subset.py
+
+representations:
+	${PY} prepare_representations.py --sdf data/sdf/subset_structures.sdf
+
+kernels:
+	${PY} training.py
+
 
 #
 
