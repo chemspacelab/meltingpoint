@@ -8,6 +8,7 @@ import rdkit
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 import rdkit.Chem.ChemicalForceFields as ChemicalForceFields
+import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 
 from chemhelp import cheminfo
 import sys
@@ -24,6 +25,54 @@ import misc
 # TODO one file per molecule
 #       sdf/structures.11965.sdf.gz
 
+
+
+def generate_conformers(molobj, max_conf=100, min_conf=10):
+
+    status = AllChem.EmbedMolecule(molobj)
+    status = AllChem.UFFOptimizeMolecule(molobj)
+
+    rot_bond = rdMolDescriptors.CalcNumRotatableBonds(molobj)
+
+    confs = min(1 + 3*rot_bond, max_conf)
+    confs = max(confs, min_conf)
+
+    AllChem.EmbedMultipleConfs(molobj, numConfs=confs,
+                useExpTorsionAnglePrefs=True,
+                useBasicKnowledge=True)
+
+    res = AllChem.MMFFOptimizeMoleculeConfs(molobj)
+    res = np.array(res)
+
+    status = res[:,0]
+    energies = res[:,1]
+
+    return energies
+
+
+def conformation(filename):
+
+    scr = "_tmp_ensemble_/"
+
+    molecules = cheminfo.read_sdffile(filename)
+
+    for im, molecule in enumerate(molecules):
+
+        smi = Chem.MolToSmiles(molecule)
+        energies = generate_conformers(molecule)
+
+        misc.save_npy(scr + str(im) + ".energies", energies)
+
+        txtsdf = cheminfo.molobj_to_sdfstr(molecule)
+
+        fsdf = open(scr + str(im) + ".sdf", 'w')
+        fsdf.write(txtsdf)
+        fsdf.close()
+
+        print(im, "{:} {:5.2f} {:5.2f}".format(smi, energies.mean(), energies.std()))
+
+
+    return
 
 
 def main():
@@ -96,5 +145,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+
+    conformation("data/sdf/subset_structures.sdf")
+
 

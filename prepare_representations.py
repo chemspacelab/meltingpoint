@@ -6,20 +6,23 @@ from chemhelp import cheminfo
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 
-def get_representations_slatm(atoms, structures, scr="_tmp_/", **kwargs):
+def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, **kwargs):
     """
     atoms -- list of molecule atoms
 
     """
 
-    filename_mbtypes = scr + "slatm.mbtypes"
+    if mbtypes is None:
 
-    try: mbtypes = misc.load_npy(filename_mbtypes)
-    except FileNotFoundError:
+        filename_mbtypes = scr + "slatm.mbtypes"
 
-        print("Generate slatm mbtypes")
-        mbtypes = qml.representations.get_slatm_mbtypes(atoms)
-        misc.save_npy(filename_mbtypes, mbtypes)
+        try: mbtypes = misc.load_npy(filename_mbtypes)
+        except FileNotFoundError:
+
+            print("Generate slatm mbtypes")
+            mbtypes = qml.representations.get_slatm_mbtypes(atoms)
+            misc.save_npy(filename_mbtypes, mbtypes)
+
 
     print("Generate slatm representations")
     replist = [qml.representations.generate_slatm(coordinate, atom, mbtypes) for coordinate, atom in zip(structures, atoms)]
@@ -154,6 +157,47 @@ def xyzs_to_representations(mol_atoms, mol_coord, name="cm", **kwargs):
     return reprs
 
 
+def generate_conformer_representation(scr="_tmp_ensemble_/"):
+
+    names = ["cm", "slatm", "bob"]
+    name = "slatm"
+
+    mbtypes = misc.load_npy("_tmp_/slatm.mbtypes")
+
+    avgreps = []
+
+    for idx in range(0, 1285):
+
+        energies = misc.load_npy(scr + str(idx) + ".energies")
+        molobjs = cheminfo.read_sdffile(scr + str(idx) + ".sdf")
+        molobjs = [mol for mol in molobjs]
+
+        xyzs = molobjs_to_xyzs(molobjs)
+        reprs = xyzs_to_representations(*xyzs, name=name, mbtypes=mbtypes)
+
+        # Boltzmann factors
+        factors = np.exp(-energies)
+        factors /= np.sum(factors)
+
+        length = reprs.shape[1]
+        avgrep = np.zeros(length)
+
+        for rep, factor in zip(reprs, factors):
+            avgrep += factor*rep
+
+        avgreps.append(avgrep)
+
+        diff = avgrep - reprs[0]
+
+        print(idx)
+
+    avgreps = np.array(avgreps)
+
+    misc.save_npy(scr + "repr.slatm")
+
+    return
+
+
 def main():
 
     import argparse
@@ -179,6 +223,7 @@ def main():
 
     # TODO Calculate max_size
 
+    # Gas phase
     # for name in representation_names:
     #     representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch)
     #     misc.save_npy(args.scratch + "repr." + name, representations)
@@ -187,6 +232,10 @@ def main():
     # print("Generate fingerprints")
     # fingerprints = molobjs_to_fingerprints(molobjs)
     # misc.save_obj(args.scratch + "repr." + "fp", fingerprints)
+
+
+    # Ensemble
+    generate_conformer_representation()
 
     return
 
