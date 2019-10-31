@@ -1,6 +1,6 @@
 
 #PY=./env/bin/python
-PY=anaconda
+PY=python
 CONDA=conda
 
 all: env pip chemhelp

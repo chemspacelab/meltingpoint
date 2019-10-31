@@ -17,9 +17,9 @@ def score_kernel(kernel, properties, idxs_train, idxs_test):
     kernel_test  = copy.deepcopy(kernel[np.ix_(idxs_test, idxs_train)])
 
     properties_train = properties[idxs_train]
-    properties_test = properties[idxs_train]
+    properties_test = properties[idxs_test]
 
-    alpha = math.cho_solve(kernel_train, properties_train)
+    alpha = qml.math.cho_solve(kernel_train, properties_train, l2reg=1e-6)
 
     predictions = np.dot(kernel_test, alpha)
 
@@ -30,7 +30,7 @@ def score_kernel(kernel, properties, idxs_train, idxs_test):
     return rmse
 
 
-def cross_validation_score(kernel, properties, score_func=score_kernel):
+def cross_validation_score(kernel, properties, score_func=score_kernel, **kwargs):
 
     fold_five = sklearn.model_selection.KFold(n_splits=5, random_state=42, shuffle=True)
     n_items = kernel.shape[0]
@@ -40,12 +40,101 @@ def cross_validation_score(kernel, properties, score_func=score_kernel):
 
     for idxs_train, idxs_test in fold_five.split(X):
 
-        score = score_func(kernel, properties, idxs_train, idxs_test)
+        score = cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test, **kwargs)
+        # score = score_func(kernel, properties, idxs_train, idxs_test)
         scores.append(score)
 
-        quit()
+    scores = np.array(scores)
+    scores = scores.T
 
     return scores
+
+
+def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
+    n_trains=[2**x for x in range(4, 15)],
+    check_len=True,
+    **kwargs):
+
+    n_items = len(idxs_train)
+
+    scores = []
+
+    for n in n_trains:
+
+        if n > n_items and check_len: break
+
+        idxs = idxs_train[:n]
+
+        score = score_kernel(kernel, properties, idxs, idxs_test, **kwargs)
+        scores.append(score)
+
+    return scores
+
+
+def learning_curves(scr):
+
+    # TODO Define n_training
+
+    n_trains=[2**x for x in range(4, 15)]
+
+    misc.save_npy(scr + "n_train", n_trains)
+
+    # TODO Load done kernels:
+
+    names = ["fchl19", "fp"]
+
+    properties = misc.load_npy(scr + "properties")
+
+    for name in names:
+        break
+        kernel = misc.load_npy(scr + "kernel." + name)
+        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+
+        print(name)
+        misc.save_npy(scr + "score."+name, scores)
+
+        scores = np.around(np.mean(scores, axis=1), decimals=2)
+        print(scores)
+
+
+    # TODO Load multi kernels
+    names = ["fchl18"]
+    for name in names:
+        break
+        kernel = misc.load_npy(scr + "kernel." + name)[0]
+        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+
+        print(name)
+        misc.save_npy(scr + "score."+name, scores)
+
+        scores = np.around(np.mean(scores, axis=1), decimals=2)
+        print(scores)
+
+
+    # Load distance kernels
+    # names = ["slatm", "cm", "bob"]
+    names = ["cm"]
+    parameters = {
+        "sigma": [200.0],
+        "lambda": [0.0]
+    }
+
+    for name in names:
+        dist = misc.load_npy(scr + "dist." + name)
+        kernels = get_kernels_l2distance(dist, parameters)
+        kernel = next(kernels)
+
+        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+
+        print(name)
+        misc.save_npy(scr + "score."+name, scores)
+
+        scores = np.around(np.mean(scores, axis=1), decimals=2)
+        print(scores)
+
+
+    return scores
+
 
 
 def generate_l2_distances(representations):
@@ -114,6 +203,21 @@ def get_fp_kernel(reps):
     return kernel
 
 
+
+
+
+def training_all():
+
+    # properties
+    properties = misc.load_npy(args.scratch + "properties")
+
+    # fchls
+    kernel = misc.load_npy(args.scratch + "kernel." + "fchl18")
+
+
+    return
+
+
 def dump_distances_and_kernels(scr):
 
     # properties
@@ -138,11 +242,11 @@ def dump_distances_and_kernels(scr):
     # kernels = get_fchl18_kernels(reps)
     # misc.save_npy(scr + "kernel." + "fchl18", kernels)
 
-    print("Generating fchl19 kernel")
-    reps = misc.load_npy(scr + "repr." + "fchl19")
-    atoms = misc.load_obj(scr + "atoms")
-    kernels = get_fchl19_kernels(reps, atoms)
-    misc.save_npy(scr + "kernel." + "fchl19", kernels)
+    # print("Generating fchl19 kernel")
+    # reps = misc.load_npy(scr + "repr." + "fchl19")
+    # atoms = misc.load_obj(scr + "atoms")
+    # kernels = get_fchl19_kernels(reps, atoms)
+    # misc.save_npy(scr + "kernel." + "fchl19", kernels)
 
     # print("Generating fingerprint kernel")
     # representations_fp = misc.load_obj(scr + "repr.fp")
@@ -206,11 +310,13 @@ def main():
     if args.scratch[-1] != "/":
         args.scratch += "/"
 
-
-    # dump_distances_and_kernels(args.scratch)
+    np.random.seed(args.randomseed)
 
     # plot_errors(args.scratch)
 
+    # dump_distances_and_kernels(args.scratch)
+
+    # learning_curves(args.scratch)
 
     return
 
