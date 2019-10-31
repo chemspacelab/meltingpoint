@@ -2,6 +2,9 @@
 from qml.kernels import kpca
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
+from matplotlib import ticker
 
 
 def kde_2d():
@@ -179,5 +182,209 @@ def histogram_2d_with_kde(xvalues, yvalues,
     plt.clf()
 
     return
+
+
+
+def formatter_int(x, pos):
+    return "%i" % x
+
+def formatter_float(x, pos):
+    return "%4.2f" % x
+
+def formatter_off(x, pos):
+    return ""
+
+def formatter_notrail(x, pos):
+    """
+    remove trailing zeros
+    """
+
+    if x.is_integer():
+        return formatter_int(x, pos)
+    else:
+        return '{0:g}'.format(x)
+
+    return
+
+
+def hex2color(s):
+    """
+    Function from MPL lib.
+
+    Take a hex string *s* and return the corresponding rgb 3-tuple
+    Example: #efefef -> (0.93725, 0.93725, 0.93725)
+    """
+    hexColorPattern = re.compile("\A#[a-fA-F0-9]{6}\Z")
+    # if not isinstance(s, basestring):
+    #     raise TypeError('hex2color requires a string argument')
+    if hexColorPattern.match(s) is None:
+        raise ValueError('invalid hex color string "%s"' % s)
+    return tuple([int(n, 16)/255.0 for n in (s[1:3], s[3:5], s[5:7])])
+
+
+def set_global_font(font="Fira Sans", fontsize=14):
+    """
+    """
+
+    plt.rc('legend', fontsize=fontsize)
+    mpl.rcParams['font.sans-serif'] = font
+    mpl.rcParams['font.family'] = "sans-serif"
+    mpl.rcParams['font.weight'] = "medium" # font.weight         : medium
+
+
+    mpl.rcParams.update({'figure.autolayout': True})
+
+    return
+
+
+def set_custom_color():
+
+    from cycler import cycler
+    mpl.colors.ColorConverter.colors['r'] = hex2color('#e41a1c')
+    mpl.colors.ColorConverter.colors['b'] = hex2color('#377eb8')
+    mpl.colors.ColorConverter.colors['g'] = hex2color('#4daf4a')
+    mpl.colors.ColorConverter.colors['p'] = hex2color('#984ea3')
+    mpl.colors.ColorConverter.colors['y'] = hex2color('#ff7f00')
+
+    return
+
+
+def set_custom_lines():
+
+    plt.rc('lines', antialiased=True) # render lines in antialised (no jaggies)
+    plt.rc('xtick.major', size=6)      # major tick size in points
+    plt.rc('xtick.minor', size=6)      # minor tick size in points
+    plt.rc('xtick.major', pad=6)       # distance to major tick label in points
+    plt.rc('xtick.minor', pad=6)       # distance to the minor tick label in points
+    # plt.rc('xtick', color='111111')    # color of the tick labels
+    # plt.rc('xtick', direction='out')    # direction: in or out
+    #
+    plt.rc('ytick.major', size=6)      # major tick size in points
+    plt.rc('ytick.minor', size=6)      # minor tick size in points
+    plt.rc('ytick.major', pad=6)       # distance to major tick label in points
+    plt.rc('ytick.minor', pad=6)       # distance to the minor tick label in points
+    # plt.rc('ytick', color='111111')    # color of the tick labels
+    # plt.rc('ytick', direction='in')    # direction: in or out
+
+    return
+
+
+def plot_learning_curve(ax, xkeys, ykeys,
+                        border=[True, False, True, False],
+                        loglog=True,
+                        show_legend=True):
+    """
+
+    """
+
+    if loglog:
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+    if show_legend:
+        leg = ax.legend(loc="best", borderaxespad=0., framealpha=1.0, fancybox=False, borderpad=1)
+        leg.get_frame().set_linewidth(0.0)
+        leg.get_frame().set_facecolor('#ffffff')
+
+    ax.yaxis.grid(True, zorder=0)
+
+    if border:
+        # I like the css standard
+        spines = ax.spines.items()
+        for direction, spine in spines:
+            if direction == "top": spine.set_visible(border[0])
+            if direction == "right": spine.set_visible(border[1])
+            if direction == "bottom": spine.set_visible(border[2])
+            if direction == "left": spine.set_visible(border[3])
+
+
+        # spines[0].set_visible(False) # left
+        # spines[0].set_visible(border[3]) # left
+        # spines[1].set_visible(border[1]) # right
+        # spines[2].set_visible(border[2]) # bottom
+        # spines[3].set_visible(border[0]) # top
+
+    ax.set_xticks(xkeys)
+    ax.set_xlim((min(xkeys)*(1-0.1), max(xkeys)*(1+0.1)))
+
+    ax.set_yticks(ykeys)
+    ax.set_ylim((min(ykeys), max(ykeys)))
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(yformatter))
+    ax.yaxis.set_minor_formatter(ticker.FuncFormatter(off_formatter))
+
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(xformatter))
+    ax.xaxis.set_minor_formatter(ticker.FuncFormatter(off_formatter))
+
+    return None
+
+
+def learning_curve_error(ax, xkeys, ykeys,
+                         x_range=None,
+                         y_range=None,
+                         border=[False, False, True, True],
+                         loglog=True,
+                         show_legend=True):
+    """
+
+    """
+
+    if loglog:
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+
+    ax.set_xticks(xkeys)
+    ax.set_yticks(ykeys)
+
+    if x_range is None:
+        ax.set_xlim((min(xkeys)*(1-0.1), max(xkeys)*(1+0.1)))
+    else:
+        ax.set_xlim(tuple(x_range))
+
+    if y_range is None:
+        ax.set_ylim((min(ykeys), max(ykeys)))
+    else:
+        ax.set_ylim(tuple(y_range))
+
+
+    ax.yaxis.set_major_formatter(ticker.FuncFormatter(formatter_int))
+    ax.yaxis.set_minor_formatter(ticker.FuncFormatter(formatter_off))
+
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(formatter_int))
+    ax.xaxis.set_minor_formatter(ticker.FuncFormatter(formatter_off))
+
+
+    # ax.xaxis.set_tick_params(width=1.2)
+    # ax.yaxis.set_tick_params(width=1.2)
+
+    if border:
+        # I like the css standard
+        spines = ax.spines.items()
+        for direction, spine in spines:
+
+            # spine.set_linewidth(1.2)
+
+            if direction == "top":
+                spine.set_visible(border[0])
+
+            if direction == "right":
+                spine.set_visible(border[1])
+
+            if direction == "bottom":
+                spine.set_visible(border[2])
+                spine.set_bounds(min(xkeys), max(xkeys))
+
+            if direction == "left":
+                spine.set_visible(border[3])
+                spine.set_bounds(min(ykeys), max(ykeys))
+
+
+    # Remove the small minor ticks in log-log plot
+    ax.minorticks_off()
+
+    return
+
+
 
 
