@@ -1,4 +1,7 @@
 
+*.png
+*.pdf
+
 figs/
 data/
 statsig/
