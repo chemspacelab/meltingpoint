@@ -387,4 +387,39 @@ def learning_curve_error(ax, xkeys, ykeys,
 
 
 
+def legend_colorcoded(ax, lines, names):
+
+    from matplotlib.legend_handler import HandlerLine2D
+    import matplotlib.lines as mlines
+
+    legkwargs = {
+        "ncol":3,
+        "frameon": False,
+        "columnspacing": 0.5,
+        "handletextpad": -0.5,
+        "handlelength": 1,
+        # "markerfirst":False,
+        # "markerscale": 0,
+    }
+
+    handles = []
+    for line, name in zip(lines, names):
+        color = plt.getp(line[0], 'color')
+        handle = mlines.Line2D([], [], color=color, marker='None', linestyle='None',
+            markersize=4, label=name.upper())
+        handles.append(handle)
+
+    # leg = ax.legend(**legkwargs)
+    leg = ax.legend(handles=handles, **legkwargs)
+
+    for text, line in zip(leg.get_texts(), lines):
+        color = plt.getp(line[0], 'color')
+        plt.setp(text, color=color)
+
+    # leg.get_frame().set_edgecolor('b') # change color
+    # leg.get_frame().set_linewidth(0.0) # remove box
+
+
+    return
+
 
