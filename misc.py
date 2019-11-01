@@ -126,12 +126,17 @@ def parallel(lines, func, args, kwargs, procs=1):
     for _ in range(procs):
         q_job.put(None)
 
+
     pool.close()
     pool.join()
+
 
     # Collect all results
     results = []
     while not q_res.empty():
+
+        # TODO Make this function into a generator
+        # yield q_res.get(block=False)
         results.append(q_res.get(block=False))
 
     return results
@@ -150,7 +155,6 @@ def process(q, results, iolock, func, args, kwargs):
         iolock: print lock.
         func: function to be called with `q` output.
         kwargs: Arbitrary keyword arguments for `func`.
-        procs: how many processes to start.
 
     """
 
@@ -160,8 +164,7 @@ def process(q, results, iolock, func, args, kwargs):
 
         line = q.get()
 
-        if line is None:
-            break
+        if line is None: break
 
         result = func(line, *args, **kwargs)
         results.put(result)
