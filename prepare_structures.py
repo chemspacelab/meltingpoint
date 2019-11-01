@@ -50,6 +50,24 @@ def generate_conformers(molobj, max_conf=100, min_conf=10):
     return energies
 
 
+def get_conformations(idx, **kwargs):
+
+    smi = Chem.MolToSmiles(molecule)
+    energies = generate_conformers(molecule)
+
+    misc.save_npy(scr + str(im) + ".energies", energies)
+
+    txtsdf = cheminfo.molobj_to_sdfstr(molecule)
+
+    fsdf = open(scr + str(im) + ".sdf", 'w')
+    fsdf.write(txtsdf)
+    fsdf.close()
+
+    print(im, "{:} {:5.2f} {:5.2f}".format(smi, energies.mean(), energies.std()))
+
+    return
+
+
 def conformation(filename):
 
     scr = "_tmp_ensemble_/"

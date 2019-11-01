@@ -6,7 +6,19 @@ from chemhelp import cheminfo
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 
-def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, **kwargs):
+
+from functools import partial
+from multiprocessing import Process, Pool
+import multiprocessing.managers
+
+
+class MyManager(multiprocessing.managers.BaseManager):
+    pass
+MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
+
+
+
+def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, debug=True, **kwargs):
     """
     atoms -- list of molecule atoms
 
@@ -24,7 +36,9 @@ def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, **k
             misc.save_npy(filename_mbtypes, mbtypes)
 
 
-    print("Generate slatm representations")
+    if debug:
+        print("Generate slatm representations")
+
     replist = [qml.representations.generate_slatm(coordinate, atom, mbtypes) for coordinate, atom in zip(structures, atoms)]
     replist = np.array(replist)
 
@@ -157,43 +171,97 @@ def xyzs_to_representations(mol_atoms, mol_coord, name="cm", **kwargs):
     return reprs
 
 
-def generate_conformer_representation(scr="_tmp_ensemble_/"):
+def print_test(idx, **kwargs):
+
+    print(idx, "wat")
+
+    return 0, np.array([1.0])
+
+
+def get_avg_repr(idx, scr="_tmp_ensemble_/", **kwargs):
+
+    name = "slatm"
+
+    energies = misc.load_npy(scr + str(idx) + ".energies")
+    molobjs = cheminfo.read_sdffile(scr + str(idx) + ".sdf")
+    molobjs = [mol for mol in molobjs]
+
+    xyzs = molobjs_to_xyzs(molobjs)
+    reprs = xyzs_to_representations(*xyzs, **kwargs)
+
+    # Boltzmann factors
+    factors = np.exp(-energies)
+    factors /= np.sum(factors)
+
+    length = reprs.shape[1]
+    avgrep = np.zeros(length)
+
+    for rep, factor in zip(reprs, factors):
+        avgrep += factor*rep
+
+    results = kwargs["array"]
+
+    results[idx,:] = avgrep
+
+    print(idx, avgrep.shape)
+
+    return idx, list(avgrep)
+
+
+def generate_conformer_representation(scr="_tmp_ensemble_/", nprocs=2):
 
     names = ["cm", "slatm", "bob"]
     name = "slatm"
 
     mbtypes = misc.load_npy("_tmp_/slatm.mbtypes")
 
-    avgreps = []
+    kwargs = {
+        "name": name,
+        "mbtypes": mbtypes,
+        "debug": False
+    }
 
-    for idx in range(0, 1285):
+    n_total = 1285
+    idxs = range(n_total)
 
-        energies = misc.load_npy(scr + str(idx) + ".energies")
-        molobjs = cheminfo.read_sdffile(scr + str(idx) + ".sdf")
-        molobjs = [mol for mol in molobjs]
+    avgreps = [0]*n_total
 
-        xyzs = molobjs_to_xyzs(molobjs)
-        reprs = xyzs_to_representations(*xyzs, name=name, mbtypes=mbtypes)
+    if nprocs == 0:
 
-        # Boltzmann factors
-        factors = np.exp(-energies)
-        factors /= np.sum(factors)
+        for idx in idxs:
 
-        length = reprs.shape[1]
-        avgrep = np.zeros(length)
+            idx, avgrep = get_avg_repr(idx, **kwargs)
 
-        for rep, factor in zip(reprs, factors):
-            avgrep += factor*rep
+            avgreps[idx] = avgrep
 
-        avgreps.append(avgrep)
+    else:
 
-        diff = avgrep - reprs[0]
 
-        print(idx)
+        m = MyManager()
+        m.start()
+
+        results = m.np_zeros((n_total, 123234))
+
+        pool = Pool(32)
+
+        kwargs["array"] = results
+
+        func = partial(get_avg_repr, **kwargs)
+
+        pool.map(func, idxs)
+
+        avgreps = results
+
+        # results = misc.parallel(idxs, get_avg_repr, [], kwargs, procs=nprocs)
+        #
+        # for result in results:
+        #     idx, avgrep = result
+        #     avgreps[idx] = avgrep
+        #     print(idx, avgrep.mean())
+
 
     avgreps = np.array(avgreps)
-
-    misc.save_npy(scr + "repr.slatm")
+    misc.save_npy(scr + "repr.slatm", avgreps)
 
     return
 

@@ -79,43 +79,47 @@ def learning_curves(scr):
 
     misc.save_npy(scr + "n_train", n_trains)
 
-    # TODO Load done kernels:
-
-    names = ["fchl19", "fp"]
 
     properties = misc.load_npy(scr + "properties")
 
-    for name in names:
-        break
-        kernel = misc.load_npy(scr + "kernel." + name)
-        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+    # TODO Load done kernels:
 
-        print(name)
-        misc.save_npy(scr + "score."+name, scores)
-
-        scores = np.around(np.mean(scores, axis=1), decimals=2)
-        print(scores)
+    # names = ["fchl19", "fp"]
+    #
+    #
+    # for name in names:
+    #     break
+    #     kernel = misc.load_npy(scr + "kernel." + name)
+    #     scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+    #
+    #     print(name)
+    #     misc.save_npy(scr + "score."+name, scores)
+    #
+    #     scores = np.around(np.mean(scores, axis=1), decimals=2)
+    #     print(scores)
 
 
     # TODO Load multi kernels
-    names = ["fchl18"]
-    for name in names:
-        break
-        kernel = misc.load_npy(scr + "kernel." + name)[0]
-        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
-
-        print(name)
-        misc.save_npy(scr + "score."+name, scores)
-
-        scores = np.around(np.mean(scores, axis=1), decimals=2)
-        print(scores)
+    # names = ["fchl18"]
+    # for name in names:
+    #     break
+    #     kernel = misc.load_npy(scr + "kernel." + name)[0]
+    #     scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+    #
+    #     print(name)
+    #     misc.save_npy(scr + "score."+name, scores)
+    #
+    #     scores = np.around(np.mean(scores, axis=1), decimals=2)
+    #     print(scores)
 
 
     # Load distance kernels
     # names = ["slatm", "cm", "bob"]
-    names = ["cm"]
+    # names = ["cm"]
+    names = ["slatm"]
     parameters = {
-        "sigma": [200.0],
+        "sigma": [5000.0],
+        # "sigma": [200.0],
         "lambda": [0.0]
     }
 
@@ -254,6 +258,13 @@ def dump_distances_and_kernels(scr):
     # misc.save_npy(scr + "kernel.fp", kernel)
 
 
+    # Ensemble
+    name = "slatm"
+    representations = misc.load_npy("_tmp_ensemble_/" + "repr." + name)
+    dist = generate_l2_distances(representations)
+    misc.save_npy(scr + "dist." + name, dist)
+
+
     return
 
 
@@ -316,7 +327,7 @@ def main():
 
     # dump_distances_and_kernels(args.scratch)
 
-    # learning_curves(args.scratch)
+    learning_curves(args.scratch)
 
     return
 
