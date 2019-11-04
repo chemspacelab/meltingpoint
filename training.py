@@ -2,6 +2,7 @@
 from qml.kernels.distance import l2_distance
 import qml
 
+import time
 import rdkit
 import sklearn
 import copy
@@ -187,7 +188,7 @@ def get_fchl18_kernels(reps, sigmas=None, return_sigmas=False):
     kernels = qml.fchl.get_local_symmetric_kernels(reps, kernel_args=kernel_args)
 
     if return_sigmas:
-        sigmas, kernels
+        return sigmas, kernels
 
     return kernels
 
@@ -198,7 +199,7 @@ def get_fchl19_kernels(reps, atoms, sigmas=None, return_sigmas=False):
         sigmas = [2**(i) for i in range(1,10)]
 
     # kernel = qml.kernels.get_local_kernel(reps, reps, atoms, atoms, sigma)
-    kernels = qml.kernels.get_local_kernel_gaussian(reps, reps, atoms, atoms, sigmas)
+    kernels = qml.kernels.get_local_kernels(reps, reps, atoms, atoms, sigmas)
 
     if return_sigmas:
         return sigmas, kernels
@@ -255,16 +256,23 @@ def dump_distances_and_kernels(scr):
         misc.save_npy(scr + "dist." + name, dist)
 
     # Prepare fchl kernels
-    print("Generating fchl18 kernel")
-    reps = misc.load_npy(scr + "repr." + "fchl18")
-    sigmas, kernels = get_fchl18_kernels(reps, return_sigmas=True)
-    misc.save_npy(scr + "fchl18." + "sigmas", sigmas)
-    misc.save_npy(scr + "kernels." + "fchl18", kernels)
+    if False:
+        print("Generating fchl18 kernel")
+        start = time.time()
+        reps = misc.load_npy(scr + "repr." + "fchl18")
+        sigmas, kernels = get_fchl18_kernels(reps, return_sigmas=True)
+        end = time.time()
+        print("time:", end-start)
+        misc.save_npy(scr + "fchl18." + "sigmas", sigmas)
+        misc.save_npy(scr + "kernels." + "fchl18", kernels)
 
     print("Generating fchl19 kernel")
     reps = misc.load_npy(scr + "repr." + "fchl19")
     atoms = misc.load_obj(scr + "atoms")
+    start = time.time()
     sigmas, kernels = get_fchl19_kernels(reps, atoms, return_sigmas=True)
+    end = time.time()
+    print("time:", end-start)
     misc.save_npy(scr + "fchl19." + "sigmas", sigmas)
     misc.save_npy(scr + "kernels." + "fchl19", kernels)
 
