@@ -278,12 +278,13 @@ def dump_distances_and_kernels(scr):
 
 def plot_errors(scr):
 
-    fig, axes = plt.subplots(1, 1, figsize=(4,4))
+    fig, axes = plt.subplots(1, 1, figsize=(6,4))
     ax = axes
 
-    n_trains=[2**x for x in range(4, 4+7)]
+    # n_trains=[2**x for x in range(4, 4+7)]
+    n_trains = misc.load_npy(scr + "n_train")
 
-    names = ["cm", "bob", "fchl18", "fchl19", "fp", "slatm", "slatmavg"]
+    names = ["cm", "bob", "fchl18", "fchl19", "fp", "slatm", "avgslatm"]
     # names = ["cm", "bob", "fchl18", "fchl19", "fp", "slatm"]
     # names = ["cm", "bob", "fchl18", "fchl19"]
 
@@ -310,7 +311,7 @@ def plot_errors(scr):
     xkeys = n_trains
 
     views.learning_curve_error(ax, xkeys, ykeys,
-        x_range=(10, 5100),
+        x_range=(10, max(n_trains)*5),
         y_range=(35, 350))
 
 
@@ -350,6 +351,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--scratch', action='store', help='', metavar="dir", default="_tmp_")
     parser.add_argument('--randomseed', action='store', help='random seed', metavar="int", default=1)
+    parser.add_argument('--plot', action='store_true')
     parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
     parser.add_argument('--get-kernels', action='store_true', help='')
     parser.add_argument('--get-learning-curves', action='store_true', help='')

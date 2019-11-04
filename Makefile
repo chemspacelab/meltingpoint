@@ -37,6 +37,8 @@ representations:
 kernels:
 	${PY} training.py
 
+score:
+	${PY} training.py --plot --scratch _tmp_subset_
 
 # Bradley
 
