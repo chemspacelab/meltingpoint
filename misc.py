@@ -9,6 +9,8 @@ import numpy as np
 import gzip
 import pickle
 
+from queue import Empty
+
 cachedir = '.pycache'
 memory = joblib.Memory(cachedir, verbose=0)
 # Usage
@@ -113,8 +115,8 @@ def parallel(lines, func, args, kwargs, procs=1):
 
     # Start the pool and await queue data
     pool = mp.Pool(procs,
-            initializer=process,
-            initargs=(q_job, q_res, iolock, func, args, kwargs))
+        initializer=process,
+        initargs=(q_job, q_res, iolock, func, args, kwargs))
 
     # stream the data to queue
     for line in lines:
@@ -126,20 +128,13 @@ def parallel(lines, func, args, kwargs, procs=1):
     for _ in range(procs):
         q_job.put(None)
 
-
     pool.close()
-    pool.join()
-
 
     # Collect all results
-    results = []
     while not q_res.empty():
+        yield q_res.get(block=False)
 
-        # TODO Make this function into a generator
-        # yield q_res.get(block=False)
-        results.append(q_res.get(block=False))
-
-    return results
+    pool.join()
 
 
 def process(q, results, iolock, func, args, kwargs):
@@ -162,7 +157,10 @@ def process(q, results, iolock, func, args, kwargs):
 
     while True:
 
-        line = q.get()
+        try:
+            line = q.get(timeout=0.05)
+        except Empty:
+            continue
 
         if line is None: break
 
