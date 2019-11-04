@@ -73,71 +73,74 @@ def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
 
 def learning_curves(scr):
 
-    # TODO Define n_training
-
-    n_trains=[2**x for x in range(4, 15)]
-
+    # Define n_training
+    n_trains=[2**x for x in range(4, 12)]
     misc.save_npy(scr + "n_train", n_trains)
 
 
+    # Load properties
     properties = misc.load_npy(scr + "properties")
 
     # TODO Load done kernels:
-
-    # names = ["fchl19", "fp"]
-    #
-    #
-    # for name in names:
-    #     break
-    #     kernel = misc.load_npy(scr + "kernel." + name)
-    #     scores = cross_validation_score(kernel, properties, n_trains=n_trains)
-    #
-    #     print(name)
-    #     misc.save_npy(scr + "score."+name, scores)
-    #
-    #     scores = np.around(np.mean(scores, axis=1), decimals=2)
-    #     print(scores)
+    names = ["fchl19", "fp"]
+    for name in names:
+        kernel = misc.load_npy(scr + "kernel." + name)
+        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+        misc.save_npy(scr + "score."+name, scores)
+        scores = np.around(np.mean(scores, axis=1), decimals=2)
+        print(name, scores)
 
 
     # TODO Load multi kernels
-    # names = ["fchl18"]
-    # for name in names:
-    #     break
-    #     kernel = misc.load_npy(scr + "kernel." + name)[0]
-    #     scores = cross_validation_score(kernel, properties, n_trains=n_trains)
-    #
-    #     print(name)
-    #     misc.save_npy(scr + "score."+name, scores)
-    #
-    #     scores = np.around(np.mean(scores, axis=1), decimals=2)
-    #     print(scores)
+    names = ["fchl18"]
+    for name in names:
+        kernel = misc.load_npy(scr + "kernel." + name)[0]
+        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+        misc.save_npy(scr + "score."+name, scores)
+        scores = np.around(np.mean(scores, axis=1), decimals=2)
+        print(name, scores)
 
 
     # Load distance kernels
-    # names = ["slatm", "cm", "bob"]
-    # names = ["cm"]
-    names = ["slatm"]
+    models = []
     parameters = {
+        "name": "slatm",
         "sigma": [5000.0],
-        # "sigma": [200.0],
         "lambda": [0.0]
     }
+    models.append(parameters)
+    parameters = {
+        "name": "cm",
+        "sigma": [200.0],
+        "lambda": [0.0]
+    }
+    models.append(parameters)
+    parameters = {
+        "name": "bob",
+        "sigma": [200.0],
+        "lambda": [0.0]
+    }
+    models.append(parameters)
+    parameters = {
+        "name": "avgslatm",
+        "sigma": [5000.0],
+        "lambda": [0.0]
+    }
+    models.append(parameters)
 
-    for name in names:
+    for model in models:
+        name = model["name"]
+        parameters = model
         dist = misc.load_npy(scr + "dist." + name)
         kernels = get_kernels_l2distance(dist, parameters)
         kernel = next(kernels)
-
         scores = cross_validation_score(kernel, properties, n_trains=n_trains)
-
-        print(name)
         misc.save_npy(scr + "score."+name, scores)
-
         scores = np.around(np.mean(scores, axis=1), decimals=2)
-        print(scores)
+        print(name, scores)
 
 
-    return scores
+    return
 
 
 
@@ -167,11 +170,14 @@ def get_kernels_l2distance(l2distance, parameters):
         yield kernel
 
 
-def get_fchl18_kernels(reps):
+def get_fchl18_kernels(reps, sigmas=None, return_sigmas=False):
+
+    if sigmas is None:
+        sigmas = [0.1*2**(i) for i in range(10)]
 
     parameters = {
-        "sigma": [1.0, 2.5, 5, 10],
-        "lambda": [float(10)**-8]
+        "sigma": sigmas,
+        "lambda": [0.0]
     }
 
     kernel_args = {
@@ -180,14 +186,22 @@ def get_fchl18_kernels(reps):
 
     kernels = qml.fchl.get_local_symmetric_kernels(reps, kernel_args=kernel_args)
 
+    if return_sigmas:
+        sigmas, kernels
+
     return kernels
 
 
-def get_fchl19_kernels(reps, atoms):
+def get_fchl19_kernels(reps, atoms, sigmas=None, return_sigmas=False):
 
-    sigma = 2.0
+    if sigmas is None:
+        sigmas = [2**(i) for i in range(1,10)]
 
-    kernels = qml.kernels.get_local_kernel(reps, reps, atoms, atoms, sigma)
+    # kernel = qml.kernels.get_local_kernel(reps, reps, atoms, atoms, sigma)
+    kernels = qml.kernels.get_local_kernel_gaussian(reps, reps, atoms, atoms, sigmas)
+
+    if return_sigmas:
+        return sigmas, kernels
 
     return kernels
 
@@ -207,9 +221,6 @@ def get_fp_kernel(reps):
     return kernel
 
 
-
-
-
 def training_all():
 
     # properties
@@ -225,45 +236,42 @@ def training_all():
 def dump_distances_and_kernels(scr):
 
     # properties
-    # print("Saving properties")
-    # misc.save_npy(scr + "properties", properties)
-    # with open('data/sdf/subset_properties.csv', 'r') as f:
-    #     properties = f.readlines()
-    #     properties = [float(x) for x in properties]
-    #     properties = np.array(properties)
+    print("Saving properties")
+    with open('data/sdf/subset_properties.csv', 'r') as f:
+        properties = f.readlines()
+        properties = [float(x) for x in properties]
+        properties = np.array(properties)
+
+    misc.save_npy(scr + "properties", properties)
 
     # Prepare distances
-    # representation_names = ["cm", "bob", "slatm"]
-    # for name in representation_names:
-    #     print("Distance", name)
-    #     representations = misc.load_npy(args.scratch + "repr." + name)
-    #     dist = generate_l2_distances(representations)
-    #     misc.save_npy(scr + "dist." + name, dist)
+    representation_names = ["cm", "bob", "slatm", "avgslatm"]
+    for name in representation_names:
+        break
+        print("Distance", name)
+        representations = misc.load_npy(scr + "repr." + name)
+        print(representations.shape)
+        dist = generate_l2_distances(representations)
+        misc.save_npy(scr + "dist." + name, dist)
 
     # Prepare fchl kernels
-    # print("Generating fchl18 kernel")
-    # reps = misc.load_npy(scr + "repr." + "fchl18")
-    # kernels = get_fchl18_kernels(reps)
-    # misc.save_npy(scr + "kernel." + "fchl18", kernels)
+    print("Generating fchl18 kernel")
+    reps = misc.load_npy(scr + "repr." + "fchl18")
+    sigmas, kernels = get_fchl18_kernels(reps, return_sigmas=True)
+    misc.save_npy(scr + "fchl18." + "sigmas", sigmas)
+    misc.save_npy(scr + "kernels." + "fchl18", kernels)
 
-    # print("Generating fchl19 kernel")
-    # reps = misc.load_npy(scr + "repr." + "fchl19")
-    # atoms = misc.load_obj(scr + "atoms")
-    # kernels = get_fchl19_kernels(reps, atoms)
-    # misc.save_npy(scr + "kernel." + "fchl19", kernels)
+    print("Generating fchl19 kernel")
+    reps = misc.load_npy(scr + "repr." + "fchl19")
+    atoms = misc.load_obj(scr + "atoms")
+    sigmas, kernels = get_fchl19_kernels(reps, atoms, return_sigmas=True)
+    misc.save_npy(scr + "fchl19." + "sigmas", sigmas)
+    misc.save_npy(scr + "kernels." + "fchl19", kernels)
 
     # print("Generating fingerprint kernel")
     # representations_fp = misc.load_obj(scr + "repr.fp")
     # kernel = get_fp_kernel(representations_fp)
     # misc.save_npy(scr + "kernel.fp", kernel)
-
-
-    # Ensemble
-    name = "slatm"
-    representations = misc.load_npy("_tmp_ensemble_/" + "repr." + name)
-    dist = generate_l2_distances(representations)
-    misc.save_npy(scr + "dist." + name, dist)
-
 
     return
 
@@ -315,6 +323,8 @@ def main():
     parser.add_argument('--scratch', action='store', help='', metavar="dir", default="_tmp_")
     parser.add_argument('--randomseed', action='store', help='random seed', metavar="int", default=1)
     parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
+    parser.add_argument('--get-kernels', action='store_true', help='')
+    parser.add_argument('--get-learning-curves', action='store_true', help='')
 
     args = parser.parse_args()
 
@@ -325,9 +335,11 @@ def main():
 
     # plot_errors(args.scratch)
 
-    # dump_distances_and_kernels(args.scratch)
+    if args.get_kernels:
+        dump_distances_and_kernels(args.scratch)
 
-    learning_curves(args.scratch)
+    if args.get_learning_curves:
+        learning_curves(args.scratch)
 
     return
 

@@ -14,6 +14,7 @@ from qml.math import svd_solve
 from qml.representations import generate_fchl_acsf
 
 import matplotlib.pyplot as plt
+import misc
 
 
 def search_similar_molecules(smiles_list, refsmi=None):
@@ -113,12 +114,13 @@ def overview_properties_pca():
 
 
 
-def search_molcules(mollist, proplist):
+def search_molcules(mollist, proplist, conf_scr="_tmp_ensemble_"):
 
     sublist_mol = []
     sublist_prop = []
+    sublist_idxs = []
 
-    for molobj, prop in zip(mollist, proplist):
+    for idx, (molobj, prop) in enumerate(zip(mollist, proplist)):
 
         atoms = molobj.GetAtoms()
         atoms = [atom.GetSymbol() for atom in atoms]
@@ -132,10 +134,10 @@ def search_molcules(mollist, proplist):
         c_idx, = np.where(uatm == 'C')
         c_idx = c_idx[0]
 
-        if counts[c_idx] > 5:
+        if counts[c_idx] > 8:
             continue
 
-        if counts[c_idx] < 2:
+        if counts[c_idx] < 3:
             continue
 
         h_idx, = np.where(uatm == 'C')
@@ -152,10 +154,9 @@ def search_molcules(mollist, proplist):
 
         try:
 
-            idx, value, stddev = prop.strip().split()
+            value, stddev = prop.strip().split()
 
             value = float(value)
-            idx = int(idx)
             stddev = float(stddev)
 
         except:
@@ -165,11 +166,9 @@ def search_molcules(mollist, proplist):
 
         sublist_mol.append(molobj)
         sublist_prop.append(value)
+        sublist_idxs.append(idx)
 
-        print(smi, value)
-
-
-    return sublist_mol, sublist_prop
+    return sublist_mol, sublist_prop, sublist_idxs
 
 
 def main():
@@ -178,34 +177,46 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--scratch', action='store', help='', metavar="dir", default="tmp2/")
     parser.add_argument('--randomseed', action='store', help='random seed', metavar="int", default=666)
+    parser.add_argument('--sdf', action='store', help='', metavar="file")
     parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
 
     args = parser.parse_args()
 
 
-    molecules = cheminfo.read_sdffile('sdf/structures.sdf.gz')
-    properties = open('sdf/properties.csv', 'r')
+    molecules = cheminfo.read_sdffile('data/sdf/structures.sdf.gz')
+    properties = open('data/sdf/properties.csv', 'r')
 
-    sub_mol, sub_prop = search_molcules(molecules, properties)
+    sub_mol, sub_prop, idxs = search_molcules(molecules, properties)
 
     properties.close()
 
 
-    fp = open('sdf/subset_properties.csv', 'w')
-    fm = open('sdf/subset_structures.sdf', 'w')
+    fm = open('data/sdf/subset_structures.sdf', 'w')
+    fp = open('data/sdf/subset_properties.csv', 'w')
 
     for mol, prop in zip(sub_mol, sub_prop):
 
         sdf = cheminfo.molobj_to_sdfstr(mol)
         fm.write(sdf)
+        fm.write("$$$$\n")
         fp.write(str(prop) + "\n")
-
 
     fm.close()
     fp.close()
 
+    for i, idx in enumerate(idxs):
+        from_dir = "_tmp_ensemble_/"
+        to_dir = "_tmp_subset_/conformers/"
+        cmd = "cp {:}{:}.sdf {:}{:}.sdf".format(from_dir, str(idx), to_dir, str(i))
+        list(misc.shell(cmd))
+        cmd = "cp {:}{:}.energies.npy {:}{:}.energies.npy".format(from_dir, str(idx), to_dir, str(i))
+        list(misc.shell(cmd))
+
+        print(cmd)
+
     return
 
 if __name__ == "__main__":
-    overview_properties_pca()
+    # overview_properties_pca()
+    main()
 

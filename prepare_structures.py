@@ -14,6 +14,7 @@ from chemhelp import cheminfo
 import sys
 
 import pickle
+import time
 
 import misc
 
@@ -50,9 +51,11 @@ def generate_conformers(molobj, max_conf=100, min_conf=10):
     return energies
 
 
-def get_conformations(idx, **kwargs):
+def get_conformations(line, scr="_tmp_ensemble_/", **kwargs):
 
-    smi = Chem.MolToSmiles(molecule)
+    im, molecule = line
+
+    # smi = Chem.MolToSmiles(molecule)
     energies = generate_conformers(molecule)
 
     misc.save_npy(scr + str(im) + ".energies", energies)
@@ -63,41 +66,87 @@ def get_conformations(idx, **kwargs):
     fsdf.write(txtsdf)
     fsdf.close()
 
-    print(im, "{:} {:5.2f} {:5.2f}".format(smi, energies.mean(), energies.std()))
+    print(im, "{:} {:5.2f} {:5.2f}".format("smi", energies.mean(), energies.std()))
 
     return
 
 
-def conformation(filename):
+def conformation(filename, procs=0):
 
     scr = "_tmp_ensemble_/"
 
     molecules = cheminfo.read_sdffile(filename)
 
-    for im, molecule in enumerate(molecules):
+    if procs == 0:
+        for im, molecule in enumerate(molecules):
+            get_conformations((im,molecule), scr=scr)
 
-        smi = Chem.MolToSmiles(molecule)
-        energies = generate_conformers(molecule)
+    else:
+        def workpackages():
+            for im, molecule in enumerate(molecules):
+                yield im, molecule
 
-        misc.save_npy(scr + str(im) + ".energies", energies)
+        lines = workpackages()
 
-        txtsdf = cheminfo.molobj_to_sdfstr(molecule)
+        results = misc.parallel(lines, get_conformations, [], {"scr":scr}, procs=procs)
+        for result in results:
+            pass
 
-        fsdf = open(scr + str(im) + ".sdf", 'w')
-        fsdf.write(txtsdf)
-        fsdf.close()
-
-        print(im, "{:} {:5.2f} {:5.2f}".format(smi, energies.mean(), energies.std()))
-
+        # misc.parallel(lines)#, get_conformations, [], {"scr":scr}, procs=procs)
 
     return
 
 
-def main():
+def prepare_sdf_and_csv_procs(line, **kwargs):
 
-    db = misc.load_obj("data/melting_bradley")
+    result = prepare_sdf_and_csv(*line)
+
+    return result
+
+def prepare_sdf_and_csv(smi, values, **kwargs):
+
+    kelvin = np.array(values)
+
+    # TODO histogram of sigma
+    standard_deviation = np.std(kelvin)
+    mean = np.mean(kelvin)
+
+    molobj = Chem.MolFromSmiles(smi)
+
+    n_atoms = len(molobj.GetAtoms())
+
+    # NOTE This is a choice
+    if n_atoms > 50: return None
+    if n_atoms < 4: return None
+
+    molobj = Chem.AddHs(molobj)
+
+    if molobj is None: return None
+
+    molobj = cheminfo.conformationalsearch(smi)
+
+    if molobj is None: return None
+
+    sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+
+    # fsdf.write(sdfstr.encode())
+    #
+    # propstr = "{:} {:} {:}\n".format(i, mean, standard_deviation)
+    # fprop.write(propstr)
+    #
+    # other_end = time.time()
+    print("{:4.1f}".format(mean), "{:1.2f}".format(standard_deviation))
+
+    return molobj, mean, standard_deviation
+
+
+def main(datafile, procs=0):
+
+    db = misc.load_obj(datafile)
 
     keys = db.keys()
+
+    print("total keys:", len(keys))
 
     xaxis = []
     yaxis = []
@@ -106,55 +155,57 @@ def main():
     fsdf = gzip.open("data/sdf/structures.sdf.gz", 'w')
     fprop = open("data/sdf/properties.csv", 'w')
 
-    for i, key in enumerate(keys):
 
-        smi = key
-        idx = db[key]['idx'][0] # First for
-        kelvin = db[key]['K']
-        kelvin = np.array(kelvin)
+    # TODO Do parallel
 
-        # TODO histogram of sigma
-        standard_deviation = np.std(kelvin)
-        mean = np.mean(kelvin)
+    if procs == 0:
+        for i, key in enumerate(keys):
 
-        # print(idx, mean, standard_deviation)
+            smi = key
+            kelvin = db[key]
 
-        # TODO Do conformation search
-        # TODO Ignore very small and very big molecules
+            results = prepare_sdf_and_csv(smi, kelvin)
 
-        molobj = Chem.MolFromSmiles(smi)
+            if results is None: continue
 
-        n_atoms = len(molobj.GetAtoms())
+            molobj, mean, standard_deviation = results
 
-        # TODO This is a choice
-        if n_atoms > 50: continue
+            sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+            fsdf.write(sdfstr.encode())
 
-        molobj = Chem.AddHs(molobj)
+            propstr = "{:} {:} {:}\n".format(i, mean, standard_deviation)
+            fprop.write(propstr)
 
-        if molobj is None: continue
 
-        # conformers = cheminfo.molobj_conformers(molobj, 10)
+    else:
 
-        molobj = cheminfo.conformationalsearch(smi)
+        def workpackages():
+            for i, key in enumerate(keys):
 
-        if molobj is None: continue
+                # if i > 5000: break
 
-        # if len(conformers) == 0: continue
+                smi = key
+                kelvin = db[key]
+                yield smi, kelvin
 
-        # Find lowest conformer
-        # energies = cheminfo.get_conformer_energies(molobj)
-        # idx = np.argmin(energies)
-        # conformer = conformers[idx]
+        lines = workpackages()
 
-        # sdfstr = cheminfo.molobj_to_sdfstr(molobj, conf_idx=idx)
-        sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+        results = misc.parallel(lines, prepare_sdf_and_csv_procs, [], {}, procs=procs)
 
-        print(i, mean, standard_deviation)
+        print("streaming results")
 
-        fsdf.write(sdfstr.encode())
+        for i, result in enumerate(results):
 
-        propstr = "{:} {:} {:}\n".format(i, mean, standard_deviation)
-        fprop.write(propstr)
+            if result is None: continue
+
+            molobj, mean, standard_deviation = result
+
+            sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+            fsdf.write(sdfstr.encode())
+
+            propstr = "{:} {:}\n".format(mean, standard_deviation)
+            fprop.write(propstr)
+
 
     fsdf.close()
     fprop.close()
@@ -162,8 +213,21 @@ def main():
     return
 
 
+
 if __name__ == "__main__":
 
-    conformation("data/sdf/subset_structures.sdf")
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data', action='store', help='', metavar='FILE')
+    parser.add_argument('--sdf', action='store', help='', metavar='FILE')
+    parser.add_argument('-j', '--procs', action='store', help='', type=int, metavar='int', default=0)
+
+    args = parser.parse_args()
+
+    if args.data:
+        main(args.data, procs=args.procs)
+
+    if args.sdf:
+        conformation("data/sdf/structures.sdf.gz", procs=args.procs)
 
 

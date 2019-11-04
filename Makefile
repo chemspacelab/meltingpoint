@@ -38,6 +38,32 @@ kernels:
 	${PY} training.py
 
 
+# Bradley
+
+bradley_parse_data:
+	${PY} parse_bradley.py
+
+bradley_prepare_structures:
+	${PY} prepare_structures.py --data data/melting_bradley_clean -j 30
+
+bradley_prepare_conformers:
+	${PY} prepare_structures.py --sdf data/sdf/structures.sdf.gz -j 30
+
+bradley_prepare_subset:
+	${PY} prepare_subset.py --sdf data/sdf/structures.sdf.gz -j 30
+
+bradley_prepare_representations:
+	${PY} prepare_representations.py --sdf data/sdf/subset_structures.sdf -j 30 --scratch _tmp_subset_
+
+bradley_prepare_representations_conformers:
+	${PY} prepare_representations.py --conformers -j 30 --scratch _tmp_subset_
+
+bradley_prepare_kernels:
+	${PY} training.py --get-kernels --scratch _tmp_subset_
+
+bradley_prepare_curves:
+	${PY} training.py --get-learning-curves --scratch _tmp_subset_
+
 #
 
 clean:

@@ -45,16 +45,16 @@ def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, deb
     return replist
 
 
-def get_representations_fchl(atoms, structures, max_size=35, cut_distance=10**6, **kwargs):
+def get_representations_fchl(atoms, structures, max_atoms=35, cut_distance=10**6, **kwargs):
 
     print("Generate fchl18 representations")
-    replist = [qml.fchl.generate_representation(coordinate, atom, max_size=max_size, cut_distance=cut_distance) for coordinate, atom in zip(structures, atoms)]
+    replist = [qml.fchl.generate_representation(coordinate, atom, max_size=max_atoms, cut_distance=cut_distance) for coordinate, atom in zip(structures, atoms)]
     replist = np.array(replist)
 
     return replist
 
 
-def get_representations_fchl19(atoms, structures, max_size=35, cut_distances=10**6, **kwargs):
+def get_representations_fchl19(atoms, structures, max_atoms=35, cut_distances=10**6, **kwargs):
 
     print("Generate fchl19 representations")
 
@@ -64,7 +64,7 @@ def get_representations_fchl19(atoms, structures, max_size=35, cut_distances=10*
         elements = list(np.unique(elements))
 
     parameters = {
-        "pad": max_size,
+        "pad": max_atoms,
 	'nRs2': 22,
 	'nRs3': 17,
 	'eta2': 0.41,
@@ -83,16 +83,16 @@ def get_representations_fchl19(atoms, structures, max_size=35, cut_distances=10*
     return replist
 
 
-def get_representations_cm(atoms, structures, size=23, **kwargs):
+def get_representations_cm(atoms, structures, max_atoms=23, **kwargs):
 
     print("Generate coulomb matrix representations")
-    replist = [qml.representations.generate_coulomb_matrix(nuclear_charges, coordinates, size=size) for coordinates, nuclear_charges in zip(structures, atoms)]
+    replist = [qml.representations.generate_coulomb_matrix(nuclear_charges, coordinates, size=max_atoms) for coordinates, nuclear_charges in zip(structures, atoms)]
     replist = np.array(replist)
 
     return replist
 
 
-def get_representations_bob(atoms, structures, max_size=23, asize=None, **kwargs):
+def get_representations_bob(atoms, structures, max_atoms=23, asize=None, **kwargs):
 
     if asize is None:
         print("Generate atypes")
@@ -113,7 +113,7 @@ def get_representations_bob(atoms, structures, max_size=23, asize=None, **kwargs
 
     print("Generate bag-of-bond representations")
 
-    replist = [qml.representations.generate_bob(charges, coordinates, [], size=max_size, asize=asize) for charges, coordinates in zip(atoms, structures)]
+    replist = [qml.representations.generate_bob(charges, coordinates, [], size=max_atoms, asize=asize) for charges, coordinates in zip(atoms, structures)]
     replist = np.asarray(replist)
 
     return replist
@@ -199,57 +199,64 @@ def get_avg_repr(idx, scr="_tmp_ensemble_/", **kwargs):
     for rep, factor in zip(reprs, factors):
         avgrep += factor*rep
 
-    results = kwargs["array"]
-
-    results[idx,:] = avgrep
-
     print(idx, avgrep.shape)
 
-    return idx, list(avgrep)
+    if "array" in kwargs:
+        results = kwargs["array"]
+        results[idx,:] = avgrep
+
+    else:
+        return idx, avgrep
 
 
-def generate_conformer_representation(scr="_tmp_ensemble_/", nprocs=2):
+def generate_conformer_representation(scr="_tmp_ensemble_/", procs=0):
 
     names = ["cm", "slatm", "bob"]
     name = "slatm"
 
-    mbtypes = misc.load_npy("_tmp_/slatm.mbtypes")
+    mbtypes = misc.load_npy(scr +"slatm.mbtypes")
+
+    # TODO Calculate max_size
+    mol_atoms = misc.load_obj(scr + "atoms")
+    max_atoms = [len(atoms) for atoms in mol_atoms]
+    max_atoms = max(max_atoms)
 
     kwargs = {
         "name": name,
         "mbtypes": mbtypes,
-        "debug": False
+        "debug": False,
+        "max_atoms": max_atoms,
     }
 
-    n_total = 1285
+    # n_total = 1285
+    n_total = 3456
     idxs = range(n_total)
 
     avgreps = [0]*n_total
 
-    if nprocs == 0:
+    if procs == 0:
 
         for idx in idxs:
 
             idx, avgrep = get_avg_repr(idx, **kwargs)
-
             avgreps[idx] = avgrep
 
     else:
 
+        idx, rep = get_avg_repr(0, **kwargs)
+        rep_size = rep.shape[0]
+        print("rep size", rep_size)
 
         m = MyManager()
         m.start()
 
-        results = m.np_zeros((n_total, 123234))
+        results = m.np_zeros((n_total, rep_size))
 
         pool = Pool(32)
 
         kwargs["array"] = results
-
         func = partial(get_avg_repr, **kwargs)
-
         pool.map(func, idxs)
-
         avgreps = results
 
         # results = misc.parallel(idxs, get_avg_repr, [], kwargs, procs=nprocs)
@@ -259,9 +266,8 @@ def generate_conformer_representation(scr="_tmp_ensemble_/", nprocs=2):
         #     avgreps[idx] = avgrep
         #     print(idx, avgrep.mean())
 
-
     avgreps = np.array(avgreps)
-    misc.save_npy(scr + "repr.slatm", avgreps)
+    misc.save_npy(scr + "repr.avgslatm", avgreps)
 
     return
 
@@ -271,39 +277,47 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--scratch', action='store', help='', metavar="dir", default="_tmp_")
+    parser.add_argument('--conformers', action='store_true', help='')
     parser.add_argument('--sdf', action='store', help='', metavar="file")
-    parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
+    parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0)
 
     args = parser.parse_args()
 
     if args.scratch[-1] != "/":
         args.scratch += "/"
 
-    molobjs = cheminfo.read_sdffile(args.sdf)
-    molobjs = [mol for mol in molobjs]
+    if not args.conformers:
+        molobjs = cheminfo.read_sdffile(args.sdf)
+        molobjs = [mol for mol in molobjs]
 
-    representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
+        # representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
+        representation_names = ["bob"]
 
-    xyzs = molobjs_to_xyzs(molobjs)
+        xyzs = molobjs_to_xyzs(molobjs)
 
-    mol_atoms, mol_coords = xyzs
-    misc.save_obj(args.scratch + "atoms", mol_atoms)
+        mol_atoms, mol_coords = xyzs
+        misc.save_obj(args.scratch + "atoms", mol_atoms)
 
-    # TODO Calculate max_size
+        # TODO Calculate max_size
 
-    # Gas phase
-    # for name in representation_names:
-    #     representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch)
-    #     misc.save_npy(args.scratch + "repr." + name, representations)
-    #
-    # # fingerprints
-    # print("Generate fingerprints")
-    # fingerprints = molobjs_to_fingerprints(molobjs)
-    # misc.save_obj(args.scratch + "repr." + "fp", fingerprints)
+        max_atoms = [len(atoms) for atoms in mol_atoms]
+        max_atoms = max(max_atoms)
+
+        # Gas phase
+        for name in representation_names:
+            representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch, max_atoms=max_atoms)
+            misc.save_npy(args.scratch + "repr." + name, representations)
+            del representations
+
+        # # fingerprints
+        print("Generate fingerprints")
+        fingerprints = molobjs_to_fingerprints(molobjs)
+        misc.save_obj(args.scratch + "repr." + "fp", fingerprints)
 
 
     # Ensemble
-    generate_conformer_representation()
+    if args.conformers:
+        generate_conformer_representation(scr=args.scratch, procs=args.procs)
 
     return
 
