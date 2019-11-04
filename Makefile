@@ -66,6 +66,9 @@ bradley_prepare_kernels:
 bradley_prepare_curves:
 	${PY} training.py --get-learning-curves --scratch _tmp_subset_
 
+bradley_print_score:
+	${PY} plot.py --scratch _tmp_subset_
+
 #
 
 clean:
