@@ -54,7 +54,7 @@ def get_representations_fchl(atoms, structures, max_atoms=35, cut_distance=10**6
     return replist
 
 
-def get_representations_fchl19(atoms, structures, max_atoms=35, cut_distances=10**6, **kwargs):
+def get_representations_fchl19(atoms, structures, max_atoms=35, cut_distances=8.0, **kwargs):
 
     print("Generate fchl19 representations")
 
@@ -289,17 +289,18 @@ def main():
     if not args.conformers:
         molobjs = cheminfo.read_sdffile(args.sdf)
         molobjs = [mol for mol in molobjs]
+        # molobjs = molobjs[:10]
 
         # representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
-        representation_names = ["bob"]
+        representation_names = ["fchl19"]
+        # representation_names = ["bob"]
 
         xyzs = molobjs_to_xyzs(molobjs)
 
         mol_atoms, mol_coords = xyzs
         misc.save_obj(args.scratch + "atoms", mol_atoms)
 
-        # TODO Calculate max_size
-
+        #  Calculate max_size
         max_atoms = [len(atoms) for atoms in mol_atoms]
         max_atoms = max(max_atoms)
 
