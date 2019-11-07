@@ -291,8 +291,8 @@ def main():
         molobjs = [mol for mol in molobjs]
         # molobjs = molobjs[:10]
 
-        # representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
-        representation_names = ["fchl19"]
+        representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
+        # representation_names = ["fchl19"]
         # representation_names = ["bob"]
 
         xyzs = molobjs_to_xyzs(molobjs)
@@ -307,6 +307,7 @@ def main():
         # Gas phase
         for name in representation_names:
             representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch, max_atoms=max_atoms)
+            print(representations.shape)
             misc.save_npy(args.scratch + "repr." + name, representations)
             del representations
 
