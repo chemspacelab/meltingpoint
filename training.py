@@ -115,16 +115,12 @@ def cross_validation(kernels, properties,
                 training_points=training_points)
 
             kernel_score.append(training_scores)
-            print(training_scores)
 
         kernel_score = np.array(kernel_score)
         kernel_score = kernel_score.T
         kernel_scores.append(kernel_score)
 
         mean_score = np.mean(kernel_score, axis=1)
-        print(mean_score)
-        print(winner_idxs)
-        print(winner_mean)
 
         for i in range(n_points):
             this_mean = mean_score[i]
@@ -134,17 +130,12 @@ def cross_validation(kernels, properties,
                 winner_mean[i] = this_mean
                 winner_idxs[i] = idxk
 
-        print(winner_idxs)
-        print(winner_mean)
+    scores = []
+    for i, idx in enumerate(winner_idxs):
+        score = kernel_scores[idx][i,:]
+        scores.append(kernel_scores[idx][i])
 
-
-    print()
-    print(winner_idxs)
-    print(winner_mean)
-
-    quit()
-
-    return idx_winners, scores
+    return winner_idxs, scores
 
 
 def cross_validation_score(kernel, properties, score_func=score_kernel,
@@ -219,15 +210,17 @@ def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
 
 def dump_kernel_scores(scr):
 
+    # Predefined reg
+    l2regs = [10**-x for x in range(1, 4)]
+
     # Define n_training
     n_trains=[2**x for x in range(4, 12)]
     misc.save_npy(scr + "n_train", n_trains)
 
-
     # Load properties
     properties = misc.load_npy(scr + "properties")
 
-    # TODO Load done kernels:
+    # TODO Load done kernel
     names = ["fp"]
     for name in names:
         break
@@ -238,15 +231,56 @@ def dump_kernel_scores(scr):
         print(name, scores)
 
 
-    # TODO Load multi kernels
-    names = ["fchl19"]
+    # Load multi kernels (reg search)
+    names = ["fchl19", "fchl18"]
     for name in names:
-        kernel = misc.load_npy(scr + "kernels." + name)
-        scores, parameters = cross_validation(kernel, properties, training_points=n_trains)
+        kernels = misc.load_npy(scr + "kernels." + name)
+
+        n_l2regs = len(l2regs)
+        n_kernels = kernels.shape[0]
+        n_len = kernels[0].shape[0]
+
+        diaidx = np.diag_indices(n_len)
+
+        def scan_kernels():
+            for kernel in kernels:
+                kernel[diaidx] += l2regs[0]
+                yield kernel
+                for i in range(1, n_l2regs):
+                    kernel[diaidx] += -l2regs[i-1] +l2regs[i]
+                    yield kernel
+
+        idx_winners, scores = cross_validation(scan_kernels(), properties, training_points=n_trains)
         misc.save_npy(scr + "score."+name, scores)
         scores = np.around(np.mean(scores, axis=1), decimals=2)
+
+        # Save parameters
+        winner_parameters = {}
+        for ni, index in enumerate(idx_winners):
+
+            # convert linear index to multi-dimensions
+            idx_parameters = np.unravel_index([index], (n_kernels, n_l2regs))
+            i, j = idx_parameters
+            i = int(i[0])
+            j = int(j[0])
+
+            n = n_trains[ni]
+            sigma = i
+            l2reg = l2regs[j]
+
+            parameters = {
+                "sigma": sigma,
+                "reg": l2reg
+            }
+
+            winner_parameters[n] = parameters
+
+        misc.save_json(scr + "parameters."+name, winner_parameters)
+
         print(name, scores)
 
+
+    quit()
 
     # Load distance kernels
     models = []
@@ -450,8 +484,6 @@ def main():
         args.scratch += "/"
 
     np.random.seed(args.randomseed)
-
-    plot_errors(args.scratch)
 
     if args.get_kernels:
         dump_distances_and_kernels(args.scratch)
