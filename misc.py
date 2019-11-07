@@ -8,6 +8,7 @@ import subprocess
 import numpy as np
 import gzip
 import pickle
+import json
 
 from queue import Empty
 
@@ -32,6 +33,15 @@ def load_npy(name):
     npy = np.load(name + ".npy")
     return npy
 
+def save_json(name, obj):
+    with open(name + ".json", 'w') as f:
+        json.dump(obj, f, indent=4)
+
+def load_json(name):
+    with open(name+".json", 'r') as f:
+        content = f.read()
+        content = json.loads(content)
+        return content
 
 def shell(cmd):
     """
