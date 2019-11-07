@@ -17,6 +17,16 @@ memory = joblib.Memory(cachedir, verbose=0)
 # Usage
 # @memory.cache
 
+def save(name, obj):
+    """
+    """
+    # TODO Check for obj type and select saving
+    # if dict: json
+    # if npy: numpy
+    # else: pkl
+
+    return
+
 def save_obj(name, obj):
     with open(name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
