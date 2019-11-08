@@ -211,7 +211,8 @@ def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
 def dump_kernel_scores(scr):
 
     # Predefined reg
-    l2regs = [10**-x for x in range(1, 4)]
+    l2regs = [10**-x for x in range(1, 4)] + [0.0]
+    n_l2regs = len(l2regs)
 
     # Define n_training
     n_trains=[2**x for x in range(4, 12)]
@@ -223,17 +224,45 @@ def dump_kernel_scores(scr):
     # TODO Load done kernel
     names = ["fp"]
     for name in names:
-        break
         kernel = misc.load_npy(scr + "kernel." + name)
-        scores, parameters = cross_validation_score(kernel, properties, n_trains=n_trains)
+
+        n_len = kernel.shape[0]
+        diaidx = np.diag_indices(n_len)
+
+        def scan_kernels():
+            kernel[diaidx] += l2regs[0]
+            yield kernel
+            for i in range(1, n_l2regs):
+                kernel[diaidx] += -l2regs[i-1] +l2regs[i]
+                yield kernel
+
+        idx_winners, scores = cross_validation(scan_kernels(), properties, training_points=n_trains)
         misc.save_npy(scr + "score."+name, scores)
         scores = np.around(np.mean(scores, axis=1), decimals=2)
+
+        # Save parameters
+        winner_parameters = {}
+        for ni, index in enumerate(idx_winners):
+
+            n = n_trains[ni]
+            l2reg = l2regs[index]
+
+            parameters = {
+                "reg": l2reg,
+            }
+
+            winner_parameters[n] = parameters
+
+        misc.save_json(scr + "parameters."+name, winner_parameters)
+
         print(name, scores)
+
 
 
     # Load multi kernels (reg search)
     names = ["fchl19", "fchl18"]
     for name in names:
+        break
         kernels = misc.load_npy(scr + "kernels." + name)
 
         n_l2regs = len(l2regs)
@@ -254,6 +283,10 @@ def dump_kernel_scores(scr):
         misc.save_npy(scr + "score."+name, scores)
         scores = np.around(np.mean(scores, axis=1), decimals=2)
 
+        # Clean
+        kernels = None
+        del kernels
+
         # Save parameters
         winner_parameters = {}
         for ni, index in enumerate(idx_winners):
@@ -270,7 +303,7 @@ def dump_kernel_scores(scr):
 
             parameters = {
                 "sigma": sigma,
-                "reg": l2reg
+                "reg": l2reg,
             }
 
             winner_parameters[n] = parameters
@@ -280,46 +313,77 @@ def dump_kernel_scores(scr):
         print(name, scores)
 
 
-    quit()
-
     # Load distance kernels
     models = []
     parameters = {
         "name": "slatm",
-        "sigma": [5000.0],
-        "lambda": [0.0]
+        "sigma": [2**x for x in range(1, 12, 2)],
+        "lambda": l2regs,
     }
     models.append(parameters)
     parameters = {
         "name": "cm",
-        "sigma": [200.0],
-        "lambda": [0.0]
+        "sigma": [2**x for x in range(1, 12, 2)],
+        "lambda": l2regs,
     }
     models.append(parameters)
     parameters = {
         "name": "bob",
-        "sigma": [200.0],
-        "lambda": [0.0]
+        "sigma": [2**x for x in range(1, 12, 2)],
+        "lambda": l2regs,
     }
     models.append(parameters)
     parameters = {
         "name": "avgslatm",
-        "sigma": [5000.0],
-        "lambda": [0.0]
+        "sigma": [2**x for x in range(1, 20, 2)],
+        "lambda": l2regs,
     }
     models.append(parameters)
 
     for model in models:
         name = model["name"]
         parameters = model
+
+        n_sigma = len(parameters["sigma"])
+        n_lambda = len(parameters["lambda"])
+
         dist = misc.load_npy(scr + "dist." + name)
         kernels = get_kernels_l2distance(dist, parameters)
-        kernel = next(kernels)
-        scores = cross_validation_score(kernel, properties, n_trains=n_trains)
+
+        # Cross validate
+        idx_winners, scores = cross_validation(kernels, properties, training_points=n_trains)
+
+        # Save scores
         misc.save_npy(scr + "score."+name, scores)
         scores = np.around(np.mean(scores, axis=1), decimals=2)
+
+        # Save parameters
+        winner_parameters = {}
+        for ni, index in enumerate(idx_winners):
+
+            # convert linear index to multi-dimensions
+            idx_parameters = np.unravel_index([index], (n_sigma, n_lambda))
+            i, j = idx_parameters
+            i = int(i[0])
+            j = int(j[0])
+
+            n = n_trains[ni]
+            sigma = parameters["sigma"][i]
+            l2reg = l2regs[j]
+
+            this_parameters = {
+                "sigma": sigma,
+                "reg": l2reg,
+            }
+
+            winner_parameters[n] = this_parameters
+
+        misc.save_json(scr + "parameters."+name, winner_parameters)
+
         print(name, scores)
 
+
+    quit()
 
     return
 
@@ -347,7 +411,6 @@ def get_kernels_l2distance(l2distance, parameters):
         for k_lambda in parameters["lambda"]:
             kernel[np.diag_indices_from(kernel)] = diag_kernel + k_lambda
 
-        # TODO
         yield kernel
 
 
