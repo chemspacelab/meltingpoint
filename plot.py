@@ -41,12 +41,12 @@ def plot_errors(scr):
         lines.append(line)
         last_points.append(mean[-1])
 
-    ykeys = [300, 150, 75, 40]
+    ykeys = [40 +10*x for x in range(0, 12, 2)]
     xkeys = n_trains
 
     views.learning_curve_error(ax, xkeys, ykeys,
         x_range=(10, max(n_trains)*5),
-        y_range=(35, 350))
+        y_range=(35, 200))
 
 
     # views.legend_colorcoded(ax, lines, names)
