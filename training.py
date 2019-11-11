@@ -211,7 +211,7 @@ def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
 def dump_kernel_scores(scr):
 
     # Predefined reg
-    l2regs = [10**-x for x in range(1, 4)] + [0.0]
+    l2regs = [10**-x for x in range(1, 6, 2)] + [0.0]
     n_l2regs = len(l2regs)
 
     # Define n_training
@@ -262,7 +262,6 @@ def dump_kernel_scores(scr):
     # Load multi kernels (reg search)
     names = ["fchl19", "fchl18"]
     for name in names:
-        break
         kernels = misc.load_npy(scr + "kernels." + name)
 
         n_l2regs = len(l2regs)
@@ -411,7 +410,7 @@ def get_kernels_l2distance(l2distance, parameters):
         for k_lambda in parameters["lambda"]:
             kernel[np.diag_indices_from(kernel)] = diag_kernel + k_lambda
 
-        yield kernel
+            yield kernel
 
 
 def get_fchl18_kernels(reps, sigmas=None, return_sigmas=False):
@@ -494,7 +493,6 @@ def dump_distances_and_kernels(scr):
     # Prepare distances
     representation_names = ["cm", "bob", "slatm", "avgslatm"]
     for name in representation_names:
-        break
         print("Distance", name)
         representations = misc.load_npy(scr + "repr." + name)
         print(representations.shape)
