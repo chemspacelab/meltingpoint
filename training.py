@@ -423,8 +423,11 @@ def get_fchl18_kernels(reps, sigmas=None, return_sigmas=False):
         "lambda": [0.0]
     }
 
+    do_alchemy = "off"
+
     kernel_args = {
-        "sigma": parameters["sigma"]
+        "sigma": parameters["sigma"],
+        "alchemy": do_alchemy,
     }
 
     kernels = qml.fchl.get_local_symmetric_kernels(reps, kernel_args=kernel_args)
@@ -491,7 +494,7 @@ def dump_distances_and_kernels(scr):
     misc.save_npy(scr + "properties", properties)
 
     # Prepare distances
-    representation_names = ["cm", "bob", "slatm", "avgslatm"]
+    representation_names = ["cm", "bob", "slatm"] # + ["avgslatm"]
     for name in representation_names:
         print("Distance", name)
         representations = misc.load_npy(scr + "repr." + name)
@@ -499,31 +502,43 @@ def dump_distances_and_kernels(scr):
         dist = generate_l2_distances(representations)
         misc.save_npy(scr + "dist." + name, dist)
 
+        dist = None
+        del dist
+
     # Prepare fchl kernels
     if False:
         print("Generating fchl18 kernel")
         start = time.time()
         reps = misc.load_npy(scr + "repr." + "fchl18")
+        print("shape:", reps.shape)
         sigmas, kernels = get_fchl18_kernels(reps, return_sigmas=True)
         end = time.time()
         print("time:", end-start)
         misc.save_npy(scr + "fchl18." + "sigmas", sigmas)
         misc.save_npy(scr + "kernels." + "fchl18", kernels)
 
-    print("Generating fchl19 kernel")
-    reps = misc.load_npy(scr + "repr." + "fchl19")
-    atoms = misc.load_obj(scr + "atoms")
-    start = time.time()
-    sigmas, kernels = get_fchl19_kernels(reps, atoms, return_sigmas=True)
-    end = time.time()
-    print("time:", end-start)
-    misc.save_npy(scr + "fchl19." + "sigmas", sigmas)
-    misc.save_npy(scr + "kernels." + "fchl19", kernels)
+        reps = None
+        del reps
+        kernels = None
+        del kernels
 
-    # print("Generating fingerprint kernel")
-    # representations_fp = misc.load_obj(scr + "repr.fp")
-    # kernel = get_fp_kernel(representations_fp)
-    # misc.save_npy(scr + "kernel.fp", kernel)
+    if True:
+        print("Generating fchl19 kernel")
+        reps = misc.load_npy(scr + "repr." + "fchl19")
+        print("shape:", reps.shape)
+        atoms = misc.load_obj(scr + "atoms")
+        start = time.time()
+        sigmas, kernels = get_fchl19_kernels(reps, atoms, return_sigmas=True)
+        end = time.time()
+        print("time:", end-start)
+        misc.save_npy(scr + "fchl19." + "sigmas", sigmas)
+        misc.save_npy(scr + "kernels." + "fchl19", kernels)
+
+    if True:
+        print("Generating fingerprint kernel")
+        representations_fp = misc.load_obj(scr + "repr.fp")
+        kernel = get_fp_kernel(representations_fp)
+        misc.save_npy(scr + "kernel.fp", kernel)
 
     return
 

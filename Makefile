@@ -84,10 +84,6 @@ bradall_prepare_representations:
 bradall_prepare_kernels:
 	${PY} training.py --get-kernels --scratch _tmp_all_
 
-bradtest_prepare_representations:
-	${PY} prepare_representations.py --sdf data/sdf/structures.sdf.gz -j 30 --scratch _tmp_test_
-bradtest_prepare_kernels:
-	${PY} training.py --scratch _tmp_test_ --get-kernels
 #
 
 clean:

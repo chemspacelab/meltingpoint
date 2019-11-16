@@ -291,8 +291,8 @@ def main():
         molobjs = [mol for mol in molobjs]
         # molobjs = molobjs[:10]
 
-        representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
-        # representation_names = ["fchl19"]
+        # representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
+        representation_names = ["fchl18"]
         # representation_names = ["bob"]
 
         xyzs = molobjs_to_xyzs(molobjs)
