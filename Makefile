@@ -47,6 +47,12 @@ kernels:
 score:
 	${PY} training.py --plot --scratch _tmp_subset_
 
+# Bing dataset
+
+bing_parse_data:
+	${PY} parse_bing.py --data data/bing/bp_scifinder.txt
+
+
 # Bradley
 
 bradley_parse_data:
@@ -83,6 +89,9 @@ bradall_prepare_representations:
 
 bradall_prepare_kernels:
 	${PY} training.py --get-kernels --scratch _tmp_all_
+
+bradall_prepare_scores:
+	${PY} training.py --get-learning-curves --scratch _tmp_all_
 
 #
 

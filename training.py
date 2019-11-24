@@ -215,15 +215,18 @@ def dump_kernel_scores(scr):
     n_l2regs = len(l2regs)
 
     # Define n_training
-    n_trains=[2**x for x in range(4, 12)]
+    # n_trains=[2**x for x in range(4, 12)]
+    n_trains=[2**x for x in range(4, 14)]
     misc.save_npy(scr + "n_train", n_trains)
 
     # Load properties
     properties = misc.load_npy(scr + "properties")
 
+
     # TODO Load done kernel
     names = ["fp"]
     for name in names:
+        break
         kernel = misc.load_npy(scr + "kernel." + name)
 
         n_len = kernel.shape[0]
@@ -255,6 +258,9 @@ def dump_kernel_scores(scr):
 
         misc.save_json(scr + "parameters."+name, winner_parameters)
 
+        kernel = None
+        del kernel
+
         print(name, scores)
 
 
@@ -262,6 +268,7 @@ def dump_kernel_scores(scr):
     # Load multi kernels (reg search)
     names = ["fchl19", "fchl18"]
     for name in names:
+        break
         kernels = misc.load_npy(scr + "kernels." + name)
 
         n_l2regs = len(l2regs)
@@ -337,7 +344,7 @@ def dump_kernel_scores(scr):
         "sigma": [2**x for x in range(1, 20, 2)],
         "lambda": l2regs,
     }
-    models.append(parameters)
+    # models.append(parameters)
 
     for model in models:
         name = model["name"]
@@ -484,14 +491,21 @@ def training_all():
 
 def dump_distances_and_kernels(scr):
 
+    # TODO Properties should be read by scr!!
+
     # properties
     print("Saving properties")
-    with open('data/sdf/subset_properties.csv', 'r') as f:
+    with open('data/sdf/properties.csv', 'r') as f:
         properties = f.readlines()
+        properties = [x.split()[0] for x in properties]
         properties = [float(x) for x in properties]
         properties = np.array(properties)
 
+    print(properties.shape)
+
     misc.save_npy(scr + "properties", properties)
+
+    quit()
 
     # Prepare distances
     representation_names = ["cm", "bob", "slatm"] # + ["avgslatm"]
