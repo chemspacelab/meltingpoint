@@ -75,17 +75,6 @@ def clean_data(listdata):
         data[smi].append(value)
 
 
-    for key in data.keys():
-
-        values = data[key]
-        mean = np.mean(values)
-        data[key] = mean
-
-        if len(values) > 1:
-            print(key)
-            print(values)
-
-
     return data
 
 

@@ -140,7 +140,7 @@ def prepare_sdf_and_csv(smi, values, **kwargs):
     return molobj, mean, standard_deviation
 
 
-def main(datafile, procs=0):
+def main(datafile, procs=0, scr="_tmp_"):
 
     db = misc.load_obj(datafile)
 
@@ -213,16 +213,84 @@ def main(datafile, procs=0):
     return
 
 
+def set_structures(datadict, scratch, procs=0):
+    """
+    take dict of smiles->value and generate sdf from smiles.
+    Put in scratch/structures.sdf.gz
+    Put values in scratch/properties.{txt,npy}
+
+    """
+
+
+    keys = datadict.keys()
+
+    # no mp
+    if procs == 0:
+
+        for key in keys:
+            values.append(datadict[key])
+
+        for smi, value in zip(keys, values):
+            result = prepare_sdf_and_csv(smi, value)
+            results.append(result)
+
+    # scale it out
+    elif procs > 0:
+
+        def workpackages():
+            for i, key in enumerate(keys):
+
+                # if i > 5000: break
+
+                smi = key
+                kelvin = datadict[key]
+                yield smi, kelvin
+
+        lines = workpackages()
+
+        results = misc.parallel(lines, prepare_sdf_and_csv_procs, [], {}, procs=procs)
+
+    print("saving results")
+    fsdf = gzip.open(scratch + "structures.sdf.gz", 'w')
+    fprop = open(scratch + "properties.csv", 'w')
+
+    for i, result in enumerate(results):
+
+        if result is None: continue
+
+        molobj, mean, standard_deviation = result
+
+        sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+        fsdf.write(sdfstr.encode())
+
+        propstr = "{:} {:}\n".format(mean, standard_deviation)
+        fprop.write(propstr)
+
+
+    fsdf.close()
+    fprop.close()
+
+    return
+
 
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser()
+    parser.add_argument('--datadict', action='store', help='', metavar='FILE')
     parser.add_argument('--data', action='store', help='', metavar='FILE')
     parser.add_argument('--sdf', action='store', help='', metavar='FILE')
+    parser.add_argument('--scratch', action='store', help='', metavar='DIR')
     parser.add_argument('-j', '--procs', action='store', help='', type=int, metavar='int', default=0)
 
     args = parser.parse_args()
+
+    if args.scratch[-1] != "/":
+        args.scratch += "/"
+
+    if args.datadict:
+        data = misc.load_obj(args.datadict)
+        set_structures(data, args.scratch, procs=args.procs)
 
     if args.data:
         main(args.data, procs=args.procs)

@@ -72,6 +72,14 @@ def view_values_molecules(filename):
     for key in data.keys():
 
         value = data[key]
+
+        if isinstance(value, list):
+            value = np.mean(value)
+
+        if isinstance(value, dict):
+            value = value["K"]
+            value = np.mean(value)
+
         smiles = key
 
         stoi = stoichiometry(smiles, include_hydrogen=False, typ="int")

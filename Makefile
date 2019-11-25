@@ -57,6 +57,11 @@ bing_overview:
 	${PY} plot_overview.py --dict data/bing/bp_scifinder
 	${PY} plot_overview.py --dict data/bing/mp_scifinder
 
+bing_set_structures:
+	mkdir -p _tmp_bing_bp_
+	${PY} prepare_structures.py --scratch _tmp_bing_bp_ --datadict data/bing/bp_scifinder -j 1
+	
+
 
 # Bradley
 
