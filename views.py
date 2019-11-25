@@ -3,8 +3,46 @@ from qml.kernels import kpca
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from matplotlib.ticker import NullFormatter
 
 from matplotlib import ticker
+from scipy.stats import gaussian_kde
+
+def set_border(ax, xkeys, ykeys,
+    border=[False, False, True, True]):
+    """
+    Set border CSS style
+    """
+
+    ax.set_xticks(xkeys)
+    ax.set_yticks(ykeys)
+
+    spines = ax.spines.items()
+
+    for direction, spine in spines:
+
+        # spine.set_linewidth(1.2)
+
+        if direction == "top":
+            spine.set_visible(border[0])
+
+        if direction == "right":
+            spine.set_visible(border[1])
+
+        if direction == "bottom":
+            spine.set_visible(border[2])
+
+            if border[2]:
+                spine.set_bounds(min(xkeys), max(xkeys))
+
+        if direction == "left":
+            spine.set_visible(border[3])
+
+            if border[3]:
+                spine.set_bounds(min(ykeys), max(ykeys))
+
+    return
+
 
 
 def kde_2d():
@@ -61,7 +99,7 @@ def pca_with_properties(kernel, properties, filename):
 
 def histogram_2d_with_kde(xvalues, yvalues,
         xlabel="# Heavy atoms",
-        ylabel="Melting point [Kelvin]",
+        ylabel="Value [Kelvin]",
         filename="overview_scathis",
         debug=False):
 

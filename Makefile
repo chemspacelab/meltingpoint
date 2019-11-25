@@ -51,12 +51,20 @@ score:
 
 bing_parse_data:
 	${PY} parse_bing.py --data data/bing/bp_scifinder.txt
+	${PY} parse_bing.py --data data/bing/mp_scifinder.txt
+
+bing_overview:
+	${PY} plot_overview.py --dict data/bing/bp_scifinder
+	${PY} plot_overview.py --dict data/bing/mp_scifinder
 
 
 # Bradley
 
 bradley_parse_data:
 	${PY} parse_bradley.py
+
+bradley_overview:
+	${PY} plot_overview.py --dict data/melting_bradley
 
 bradley_prepare_structures:
 	${PY} prepare_structures.py --data data/melting_bradley_clean -j 30

@@ -46,7 +46,7 @@ def plot_errors(scr):
 
     views.learning_curve_error(ax, xkeys, ykeys,
         x_range=(10, max(n_trains)*5),
-        y_range=(35, 200))
+        y_range=(35, 160))
 
 
     # views.legend_colorcoded(ax, lines, names)
@@ -69,9 +69,13 @@ def plot_errors(scr):
             transform=ax.transAxes)
     #
 
+    # help(ax.grid)
+    # ax.grid( linestyle='-', linewidth=.5, axis="x")
+
+    # ax.grid(True)
 
     ax.set_xlabel('Training set size', fontweight='medium', fontsize=11)
-    ax.set_ylabel('RMSE [K]', fontweight='medium', fontsize=11)
+    ax.set_ylabel('RMSE [Kelvin]', fontweight='medium', fontsize=11)
 
     plt.savefig(scr + "learning_curves.png", bbox_inches="tight")
     plt.savefig(scr + "learning_curves.pdf", bbox_inches="tight")

@@ -8,8 +8,7 @@ import misc
 from chemhelp import cheminfo
 
 
-def read_csv(filename, read_header=True, sep=" "):
-
+def read_csv(filename, read_header=True, sep=None):
 
     with open(filename, 'r') as f:
 
@@ -20,6 +19,7 @@ def read_csv(filename, read_header=True, sep=" "):
 
         for line in f:
 
+            line = line.replace("*", "")
             line = line.strip()
             line = line.split(sep)
             lines.append(line)
@@ -30,7 +30,7 @@ def read_csv(filename, read_header=True, sep=" "):
     return lines
 
 
-@misc.memory.cache
+# @misc.memory.cache
 def main():
 
     import argparse
@@ -41,28 +41,25 @@ def main():
 
     # data = pd.read_csv(args.data, sep=" ")
 
-    data = read_csv(args.data)
+    header, data = read_csv(args.data, read_header=True)
 
-    print(data)
+    data = clean_data(data)
 
-    return data
+    misc.save_obj(args.data.replace(".txt", ""), data)
+
+    return
 
 
-def clean_data(df):
-
-    smiles = df.iloc[1]
+def clean_data(listdata):
 
     data = {}
 
-    for index, row in df.iterrows():
+    for row in listdata:
 
-        print(row)
-        row = list(row)
-        print(row)
-        quit()
-
-        smi = row.iloc[1]
-        # value = row.mpC + 273.15
+        idx = row[0]
+        smi = row[1]
+        value = row[3]
+        value = float(value)
 
         molobj, status = cheminfo.smiles_to_molobj(smi)
 
@@ -78,11 +75,21 @@ def clean_data(df):
         data[smi].append(value)
 
 
-    return
+    for key in data.keys():
+
+        values = data[key]
+        mean = np.mean(values)
+        data[key] = mean
+
+        if len(values) > 1:
+            print(key)
+            print(values)
+
+
+    return data
 
 
 
 if __name__ == "__main__":
-    pd = main()
-    data = clean_data(pd)
+    main()
 
