@@ -138,23 +138,46 @@ def parallel(lines, func, args, kwargs, procs=1):
         initializer=process,
         initargs=(q_job, q_res, iolock, func, args, kwargs))
 
+    n_in = 0
+
     # stream the data to queue
     for line in lines:
 
+        n_in += 1
+
         # halts if queue is full
         q_job.put(line)
+
+    print("None")
 
     # stop the process and pool
     for _ in range(procs):
         q_job.put(None)
 
+    print("close")
+
     pool.close()
+    pool.join()
+
+    print("yield")
+
+    n_out = 0
 
     # Collect all results
-    while not q_res.empty():
-        yield q_res.get(block=False)
+    while True:
 
-    pool.join()
+        try:
+            result = q_res.get(block=False)
+        except Empty:
+            break
+
+        n_out += 1
+        yield result
+
+    print("in", n_in)
+    print("out", n_out)
+    print("join")
+
 
 
 def process(q, results, iolock, func, args, kwargs):
@@ -185,6 +208,9 @@ def process(q, results, iolock, func, args, kwargs):
         if line is None: break
 
         result = func(line, *args, **kwargs)
+
+        print("jimmy", result)
+
         results.put(result)
 
     return

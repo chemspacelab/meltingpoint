@@ -1,4 +1,4 @@
-
+import os
 import misc
 import numpy as np
 import qml
@@ -18,7 +18,23 @@ MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
 
 
-def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, debug=True, **kwargs):
+def procs_representation_slatm(args, **kwargs):
+
+    coord = args[0]
+    atoms = args[1]
+    mbtypes = kwargs['mbtypes']
+
+    rep = qml.representations.generate_slatm(coord, atoms, mbtypes)
+
+    return rep
+
+
+def get_representations_slatm(atoms,
+    structures, scr="_tmp_/",
+    mbtypes=None,
+    debug=True,
+    procs=0,
+    **kwargs):
     """
     atoms -- list of molecule atoms
 
@@ -28,19 +44,46 @@ def get_representations_slatm(atoms, structures, scr="_tmp_/", mbtypes=None, deb
 
         filename_mbtypes = scr + "slatm.mbtypes"
 
-        try: mbtypes = misc.load_npy(filename_mbtypes)
+        try: mbtypes = misc.load_obj(filename_mbtypes)
         except FileNotFoundError:
 
             print("Generate slatm mbtypes")
             mbtypes = qml.representations.get_slatm_mbtypes(atoms)
-            misc.save_npy(filename_mbtypes, mbtypes)
+            misc.save_obj(filename_mbtypes, mbtypes)
 
 
     if debug:
         print("Generate slatm representations")
 
-    replist = [qml.representations.generate_slatm(coordinate, atom, mbtypes) for coordinate, atom in zip(structures, atoms)]
+    replist = []
+
+    # Set OMP
+    if procs > 1:
+        os.environ["OMP_NUM_THREADS"] = "1"
+
+        workargs = zip(structures, atoms)
+        workargs = list(workargs)
+
+        pool = Pool(processes=procs)
+        funcname = partial(procs_representation_slatm, mbtypes=mbtypes)
+        replist = pool.map(funcname, workargs)
+
+    else:
+        for i, (coord, atom) in enumerate(zip(structures, atoms)):
+            rep = qml.representations.generate_slatm(coord, atom, mbtypes)
+            replist.append(rep)
+
+    # replist = [qml.representations.generate_slatm(coordinate, atom, mbtypes) for coordinate, atom in zip(structures, atoms)]
     replist = np.array(replist)
+
+    for i, rep in enumerate(replist):
+        m = rep.mean()
+        if np.isnan(m):
+            print(i, rep.mean())
+
+    print(replist.mean())
+
+    quit()
 
     return replist
 
@@ -279,7 +322,7 @@ def main():
     parser.add_argument('--scratch', action='store', help='', metavar="dir", default="_tmp_")
     parser.add_argument('--conformers', action='store_true', help='')
     parser.add_argument('--sdf', action='store', help='', metavar="file")
-    parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0)
+    parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0, type=int)
 
     args = parser.parse_args()
 
@@ -292,8 +335,9 @@ def main():
         # molobjs = molobjs[:10]
 
         # representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
-        representation_names = ["fchl18"]
+        # representation_names = ["fchl18"]
         # representation_names = ["bob"]
+        representation_names = ["slatm", "bob", "cm"]
 
         xyzs = molobjs_to_xyzs(molobjs)
 
@@ -306,7 +350,7 @@ def main():
 
         # Gas phase
         for name in representation_names:
-            representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch, max_atoms=max_atoms)
+            representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch, max_atoms=max_atoms, procs=args.procs)
             print(representations.shape)
             misc.save_npy(args.scratch + "repr." + name, representations)
             del representations

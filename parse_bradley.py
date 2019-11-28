@@ -37,6 +37,8 @@ def clean_data(df):
 
     data = {}
 
+    atom_types = []
+
     for index, row in df.iterrows():
 
         smi = row.smiles
@@ -50,10 +52,20 @@ def clean_data(df):
 
         smi = cheminfo.molobj_to_smiles(molobj, remove_hs=True)
 
+        # Atoms
+        atoms = cheminfo.molobj_to_atoms(molobj)
+        atom_types += list(atoms)
+
         if smi not in data:
             data[smi] = []
 
         data[smi].append(value)
+
+
+    atom_types, counts = np.unique(atom_types, return_counts=True)
+
+    for atom, count in zip(atom_types, counts):
+        print(atom, count)
 
     misc.save_obj("data/melting_bradley_clean", data)
 

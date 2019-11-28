@@ -76,7 +76,7 @@ def learning_curves(kernel, properties, idxs_train, idxs_test,
         if n > n_items and check_len: break
 
         idxs = idxs_train[:n]
-        score = score_kernel(kernel, properties, idxs, idxs_test, **kwargs)
+        score = score_func(kernel, properties, idxs, idxs_test, **kwargs)
         scores.append(score)
 
     return scores
@@ -111,7 +111,7 @@ def cross_validation(kernels, properties,
 
         for idxs_train, idxs_test in fold_five.split(X):
             training_scores = learning_curves(kernel, properties, idxs_train, idxs_test,
-                score_func=score_func,
+                score_func=score_rmse,
                 training_points=training_points)
 
             kernel_score.append(training_scores)
@@ -226,7 +226,6 @@ def dump_kernel_scores(scr):
     # TODO Load done kernel
     names = ["fp"]
     for name in names:
-        break
         kernel = misc.load_npy(scr + "kernel." + name)
 
         n_len = kernel.shape[0]
@@ -495,7 +494,7 @@ def dump_distances_and_kernels(scr):
 
     # properties
     print("Saving properties")
-    with open('data/sdf/properties.csv', 'r') as f:
+    with open(scr + 'properties.csv', 'r') as f:
         properties = f.readlines()
         properties = [x.split()[0] for x in properties]
         properties = [float(x) for x in properties]
@@ -504,8 +503,6 @@ def dump_distances_and_kernels(scr):
     print(properties.shape)
 
     misc.save_npy(scr + "properties", properties)
-
-    quit()
 
     # Prepare distances
     representation_names = ["cm", "bob", "slatm"] # + ["avgslatm"]
@@ -536,7 +533,7 @@ def dump_distances_and_kernels(scr):
         kernels = None
         del kernels
 
-    if True:
+    if False:
         print("Generating fchl19 kernel")
         reps = misc.load_npy(scr + "repr." + "fchl19")
         print("shape:", reps.shape)

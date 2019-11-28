@@ -57,11 +57,27 @@ bing_overview:
 	${PY} plot_overview.py --dict data/bing/bp_scifinder
 	${PY} plot_overview.py --dict data/bing/mp_scifinder
 
-bing_set_structures:
-	mkdir -p _tmp_bing_bp_
-	${PY} prepare_structures.py --scratch _tmp_bing_bp_ --datadict data/bing/bp_scifinder -j 1
-	
+bing_set_structures: bing_set_structures_bp bing_set_structures_mp
 
+bing_set_structures_bp:
+	mkdir -p _tmp_bing_bp_
+	${PY} prepare_structures.py --scratch _tmp_bing_bp_ --datadict data/bing/bp_scifinder -j 24
+
+bing_set_structures_mp:
+	mkdir -p _tmp_bing_mp_
+	${PY} prepare_structures.py --scratch _tmp_bing_mp_ --datadict data/bing/mp_scifinder -j 24
+	
+bing_set_representations_bp:
+	mkdir -p _tmp_bing_bp_
+	touch _tmp_bing_bp_/slatm.mbtypes
+	rm _tmp_bing_bp_/slatm.mbtypes
+	${PY} prepare_representations.py --sdf _tmp_bing_bp_/structures.sdf.gz -j 24 --scratch _tmp_bing_bp_
+
+bing_set_kernels:
+	${PY} training.py --get-kernels --scratch _tmp_bing_bp_
+
+bing_set_scores:
+	${PY} training.py --get-learning-curves --scratch _tmp_bing_bp_
 
 # Bradley
 

@@ -50,9 +50,27 @@ def main():
     return
 
 
+def is_mol_allowed(atoms, allowed_atoms):
+
+    atoms = np.unique(atoms)
+
+    for atom in atoms:
+        if atom not in allowed_atoms:
+            return False
+
+    return True
+
+
 def clean_data(listdata):
 
+
+    allowed_atoms = [
+        1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
+    ]
+
     data = {}
+
+    atom_types = []
 
     for row in listdata:
 
@@ -69,11 +87,28 @@ def clean_data(listdata):
 
         smi = cheminfo.molobj_to_smiles(molobj, remove_hs=True)
 
+        atoms = cheminfo.molobj_to_atoms(molobj)
+
+        # filter for organic chemistry
+        if not is_mol_allowed(atoms, allowed_atoms):
+            continue
+
+        atom_types += list(atoms)
+
         if smi not in data:
             data[smi] = []
 
         data[smi].append(value)
 
+
+    atom_types, counts = np.unique(atom_types, return_counts=True)
+
+    for atom, count in zip(atom_types, counts):
+        print(atom, count)
+
+    keys = data.keys()
+
+    print("Total molecules", len(keys))
 
     return data
 

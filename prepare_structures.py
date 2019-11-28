@@ -10,6 +10,8 @@ import rdkit.Chem.AllChem as AllChem
 import rdkit.Chem.ChemicalForceFields as ChemicalForceFields
 import rdkit.Chem.rdMolDescriptors as rdMolDescriptors
 
+from multiprocessing import Pool
+
 from chemhelp import cheminfo
 import sys
 
@@ -99,11 +101,15 @@ def conformation(filename, procs=0):
 
 def prepare_sdf_and_csv_procs(line, **kwargs):
 
-    result = prepare_sdf_and_csv(*line)
+    try:
+        result = prepare_sdf_and_csv(*line, **kwargs)
+        return result
+    except:
+        print("procs exception made")
+        return None
 
-    return result
 
-def prepare_sdf_and_csv(smi, values, **kwargs):
+def prepare_sdf_and_csv(smi, values, debug=True, **kwargs):
 
     kelvin = np.array(values)
 
@@ -135,7 +141,8 @@ def prepare_sdf_and_csv(smi, values, **kwargs):
     # fprop.write(propstr)
     #
     # other_end = time.time()
-    print("{:4.1f}".format(mean), "{:1.2f}".format(standard_deviation))
+    if debug:
+        print("{:4.1f}".format(mean), "{:1.2f}".format(standard_deviation))
 
     return molobj, mean, standard_deviation
 
@@ -223,10 +230,12 @@ def set_structures(datadict, scratch, procs=0):
 
 
     keys = datadict.keys()
+    results = []
 
     # no mp
     if procs == 0:
 
+        values = []
         for key in keys:
             values.append(datadict[key])
 
@@ -240,17 +249,20 @@ def set_structures(datadict, scratch, procs=0):
         def workpackages():
             for i, key in enumerate(keys):
 
-                # if i > 5000: break
-
                 smi = key
                 kelvin = datadict[key]
                 yield smi, kelvin
 
         lines = workpackages()
 
-        results = misc.parallel(lines, prepare_sdf_and_csv_procs, [], {}, procs=procs)
+        import multiprocessing.util as util
+        util.log_to_stderr(util.SUBDEBUG)
 
-    print("saving results")
+        p = Pool(procs)
+        results = p.map(prepare_sdf_and_csv_procs, lines)
+
+
+    print("wating for results")
     fsdf = gzip.open(scratch + "structures.sdf.gz", 'w')
     fprop = open(scratch + "properties.csv", 'w')
 
@@ -260,7 +272,10 @@ def set_structures(datadict, scratch, procs=0):
 
         molobj, mean, standard_deviation = result
 
+        print("save {:4.1f}".format(mean), "{:1.2f}".format(standard_deviation))
+
         sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+        sdfstr += "$$$$\n"
         fsdf.write(sdfstr.encode())
 
         propstr = "{:} {:}\n".format(mean, standard_deviation)
