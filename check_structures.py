@@ -12,12 +12,10 @@ filename = args[0]
 
 molobjs = cheminfo.read_sdffile(filename)
 
-for molobj in molobjs:
+for i, molobj in enumerate(molobjs):
 
     molobj = next(molobjs)
 
-    # smi = cheminfo.molobj_to_smiles(molobj)
-    # molobj = cheminfo.conformationalsearch(smi)
 
     # stat = cheminfo.molobj_optimize(molobj)
     # print(stat)
@@ -26,7 +24,17 @@ for molobj in molobjs:
     np.fill_diagonal(dist, 10.0)
     min_dist = np.min(dist)
 
-    print(min_dist)
+    if min_dist < 0.01:
+        print(i, min_dist)
+        smi = cheminfo.molobj_to_smiles(molobj)
+        molobj = cheminfo.conformationalsearch(smi)
+
+        dist = Chem.rdmolops.Get3DDistanceMatrix(molobj)
+        np.fill_diagonal(dist, 10.0)
+        min_dist = np.min(dist)
+
+        print(smi)
+        print(min_dist)
 
     # atoms, coord = cheminfo.molobj_to_xyz(molobj)
 

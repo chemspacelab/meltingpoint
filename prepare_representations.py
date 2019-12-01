@@ -76,14 +76,11 @@ def get_representations_slatm(atoms,
     # replist = [qml.representations.generate_slatm(coordinate, atom, mbtypes) for coordinate, atom in zip(structures, atoms)]
     replist = np.array(replist)
 
-    for i, rep in enumerate(replist):
-        m = rep.mean()
-        if np.isnan(m):
-            print(i, rep.mean())
-
-    print(replist.mean())
-
-    quit()
+    # for i, rep in enumerate(replist):
+    #     m = rep.mean()
+    #     if np.isnan(m):
+    #         print(i, rep.mean())
+    # print(replist.mean())
 
     return replist
 
@@ -162,7 +159,9 @@ def get_representations_bob(atoms, structures, max_atoms=23, asize=None, **kwarg
     return replist
 
 
-def molobjs_to_fingerprints(molobjs):
+def molobjs_to_fingerprints(molobjs, procs=0):
+
+    # TODO do this in parallel
 
     fps = []
 

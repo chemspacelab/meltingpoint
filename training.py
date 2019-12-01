@@ -463,6 +463,8 @@ def get_fchl19_kernels(reps, atoms, sigmas=None, return_sigmas=False):
 
 def get_fp_kernel(reps):
 
+    # TODO Do this in parallel
+
     n_items = len(reps)
 
     kernel = np.zeros((n_items, n_items))

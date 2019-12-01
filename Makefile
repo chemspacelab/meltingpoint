@@ -73,11 +73,23 @@ bing_set_representations_bp:
 	rm _tmp_bing_bp_/slatm.mbtypes
 	${PY} prepare_representations.py --sdf _tmp_bing_bp_/structures.sdf.gz -j 24 --scratch _tmp_bing_bp_
 
-bing_set_kernels:
+bing_set_representations_mp:
+	mkdir -p _tmp_bing_mp_
+	touch _tmp_bing_mp_/slatm.mbtypes
+	rm _tmp_bing_mp_/slatm.mbtypes
+	${PY} prepare_representations.py --sdf _tmp_bing_mp_/structures.sdf.gz -j 24 --scratch _tmp_bing_mp_
+
+bing_set_kernels_bp:
 	${PY} training.py --get-kernels --scratch _tmp_bing_bp_
 
-bing_set_scores:
+bing_set_kernels_mp:
+	${PY} training.py --get-kernels --scratch _tmp_bing_mp_
+
+bing_set_scores_bp:
 	${PY} training.py --get-learning-curves --scratch _tmp_bing_bp_
+
+bing_set_scores_mp:
+	${PY} training.py --get-learning-curves --scratch _tmp_bing_mp_
 
 # Bradley
 
