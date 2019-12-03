@@ -431,7 +431,7 @@ def legend_colorcoded(ax, lines, names):
     import matplotlib.lines as mlines
 
     legkwargs = {
-        "ncol":3,
+        "ncol": 6,
         "frameon": False,
         "columnspacing": 0.5,
         "handletextpad": -0.5,

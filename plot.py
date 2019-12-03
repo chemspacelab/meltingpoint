@@ -25,6 +25,9 @@ def plot_errors(scr):
     lines = []
     last_points = []
 
+    y_min = np.inf
+    y_max = -np.inf
+
     for name in names:
 
         scores = misc.load_npy(scr + "score."+name)
@@ -41,32 +44,55 @@ def plot_errors(scr):
         lines.append(line)
         last_points.append(mean[-1])
 
-    ykeys = [40 +10*x for x in range(0, 12, 2)]
+        max_mean = max(mean)
+        if max_mean > y_max:
+            y_max = max_mean
+
+        min_mean = min(mean)
+        if min_mean < y_min:
+            y_min = min_mean
+
+    print(y_min, y_max)
+
+    y_min = np.floor(y_min)
+    y_min = int(np.floor(y_min / 10.0)) * 10
+    y_max = int(np.ceil(y_max) / 10.0) * 10
+
+    ykeys = []
+
+    # ykeys = np.arange(y_min, y_max, 30)
+    ykeys = np.geomspace(y_min, y_max, num=5)
+
+    ykeys = [int(np.ceil(y) / 5.0) * 5 for y in ykeys]
+
+    print(ykeys)
+
+    # ykeys = [40 +10*x for x in range(0, 12, 2)]
     xkeys = n_trains
 
     views.learning_curve_error(ax, xkeys, ykeys,
-        x_range=(10, max(n_trains)*5),
-        y_range=(35, 160))
+        x_range=(10, max(n_trains)*1.3),
+        y_range=(y_min*0.9, y_max*1.1))
 
 
-    # views.legend_colorcoded(ax, lines, names)
+    views.legend_colorcoded(ax, lines, names)
 
     # learning legends
 
-    idxs = np.argsort(last_points)
-    idxs = np.flip(idxs, axis=0)
-    offset = 0.06
-
-    for n, idx in enumerate(idxs):
-
-        name = names[idx]
-        point = last_points[idx]
-        color = plt.getp(lines[idx][0], 'color')
-
-        ax.text(0.8, 0.46-offset*n, name.upper(),
-            fontweight='bold',
-            color=color,
-            transform=ax.transAxes)
+    # idxs = np.argsort(last_points)
+    # idxs = np.flip(idxs, axis=0)
+    # offset = 0.06
+    #
+    # for n, idx in enumerate(idxs):
+    #
+    #     name = names[idx]
+    #     point = last_points[idx]
+    #     color = plt.getp(lines[idx][0], 'color')
+    #
+    #     ax.text(0.8, 0.46-offset*n, name.upper(),
+    #         fontweight='bold',
+    #         color=color,
+    #         transform=ax.transAxes)
     #
 
     # help(ax.grid)
