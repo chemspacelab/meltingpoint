@@ -125,7 +125,7 @@ def main():
     representation = distances
 
     # linear fit
-    p = np.polyfit(representation, properties, 1)
+    p = np.polyfit(representation, properties, 3)
     p = np.poly1d(p)
 
     results = p(representation)
