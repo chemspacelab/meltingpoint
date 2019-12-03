@@ -122,6 +122,22 @@ bradall_prepare_kernels:
 bradall_prepare_scores:
 	${PY} training.py --get-learning-curves --scratch _tmp_all_
 
+
+# Print
+
+print_score_bradley_subset:
+	${PY} plot.py --scratch _tmp_bradley_sub_
+
+print_score_bradley_all:
+	${PY} plot.py --scratch _tmp_bradley_all_
+
+print_score_bing_bp:
+	${PY} plot.py --scratch _tmp_bing_bp_
+
+print_score_bing_mp:
+	${PY} plot.py --scratch _tmp_bing_mp_
+
+
 #
 
 clean:
