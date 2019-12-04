@@ -110,6 +110,10 @@ def stdin():
 def parallel(lines, func, args, kwargs, procs=1):
     """
 
+    NOTE:
+        if a parallel process has uncaught exception or segfault,
+        the join will freeze. So test test test.
+
     Takes iterator (list or generator) `lines` and spawns # `procs` processes, calling
     `func` with prefined arguments `args` and `kwargs`.
 
@@ -152,18 +156,12 @@ def parallel(lines, func, args, kwargs, procs=1):
         # halts if queue is full
         q_job.put(line)
 
-    print("None")
-
     # stop the process and pool
     for _ in range(procs):
         q_job.put(None)
 
-    print("close")
-
     pool.close()
     pool.join()
-
-    print("yield")
 
     n_out = 0
 
@@ -177,11 +175,6 @@ def parallel(lines, func, args, kwargs, procs=1):
 
         n_out += 1
         yield result
-
-    print("in", n_in)
-    print("out", n_out)
-    print("join")
-
 
 
 def process(q, results, iolock, func, args, kwargs):
