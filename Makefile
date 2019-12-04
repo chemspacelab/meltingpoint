@@ -126,10 +126,21 @@ bradley_print_score:
 # ochem
 
 ochem_parse_mp:
-	${PY} parse_ochem.py
+	${PY} parse_ochem.py --scratch _tmp_ochem_mp_ -j 24 --sdf \
+	_tmp_ochem_data_/meltingpoints_0_100.sdf.gz \
+	_tmp_ochem_data_/meltingpoints_100_200.sdf.gz \
+	_tmp_ochem_data_/meltingpoints_200_250.sdf.gz \
+	_tmp_ochem_data_/meltingpoints_250_300.sdf.gz \
+	_tmp_ochem_data_/meltingpoints_300_350.sdf.gz \
+	_tmp_ochem_data_/meltingpoints_350_450.sdf.gz \
+	_tmp_ochem_data_/meltingpoints_450_x.sdf.gz
+
+ochem_parse_bp:
+	${PY} parse_ochem.py --scratch _tmp_ochem_mp_ -j 24 --sdf \
+		_tmp_ochem_data_/boilingpoints_all.sdf.gz
 
 ochem_overview:
-	${PY} plot_overview.py --sdf 
+	${PY} plot_overview.py --json _tmp_ochem_mp_/molecule_data
 
 
 

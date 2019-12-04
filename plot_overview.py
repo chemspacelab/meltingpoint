@@ -60,10 +60,7 @@ def stoichiometry(smiles, typ="str", include_hydrogen=True):
 
 
 
-def view_values_molecules(filename):
-
-    data = misc.load_obj(filename)
-
+def view_values_molecules(data, filename):
 
     xvalues = []
     yvalues = []
@@ -115,11 +112,20 @@ def main():
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dict', action='store', help='', metavar="dir", default="_tmp_")
+    parser.add_argument('--dict', action='store', help='', metavar="FILE")
+    parser.add_argument('--json', action='store', help='', metavar="FILE")
 
     args = parser.parse_args()
 
-    view_values_molecules(args.dict)
+    if args.dict:
+        data = misc.load_obj(args.dict)
+        filename = args.dict
+
+    if args.json:
+        data = misc.load_json(args.json)
+        filename = args.json
+
+    view_values_molecules(data, filename)
 
     return
 

@@ -43,12 +43,16 @@ def load_npy(name):
     npy = np.load(name + ".npy")
     return npy
 
-def save_json(name, obj):
+def save_json(name, obj, indent=4):
     with open(name + ".json", 'w') as f:
-        json.dump(obj, f, indent=4)
+        json.dump(obj, f, indent=indent)
 
 def load_json(name):
-    with open(name+".json", 'r') as f:
+
+    if not name.split(".")[-1] == "json":
+        name = name + ".json"
+
+    with open(name, 'r') as f:
         content = f.read()
         content = json.loads(content)
         return content
