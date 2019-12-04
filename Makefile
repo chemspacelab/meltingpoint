@@ -1,9 +1,12 @@
 
-#PY=./env/bin/python
 PY=python
 CONDA=conda
 
-all: env pip chemhelp
+all:
+	@echo "Read the Makefile"
+
+
+## SETUP
 
 setup: env pip chemhelp
 
@@ -30,28 +33,17 @@ statsig:
 data:
 	mkdir -p data
 
-#
 
-structures:
-	${PY} prepare_structures.py
-
-overview:
-	${PY} prepare_subset.py
-
-representations:
-	${PY} prepare_representations.py --sdf data/sdf/subset_structures.sdf
-
-kernels:
-	${PY} training.py
-
-score:
-	${PY} training.py --plot --scratch _tmp_subset_
+## DATASETS
 
 # Bing dataset
 
+BINGMP=_tmp_bing_mp_
+BINGBP=_tmp_bing_mp_
+
 bing_parse_data:
-	${PY} parse_bing.py --data data/bing/bp_scifinder.txt
-	${PY} parse_bing.py --data data/bing/mp_scifinder.txt
+	${PY} parse_bing.py --data data/bing/bp_scifinder.txt --scratch ${BINGBP}
+	${PY} parse_bing.py --data data/bing/mp_scifinder.txt --scratch ${BINGMP}
 
 bing_overview:
 	${PY} plot_overview.py --dict data/bing/bp_scifinder
@@ -93,6 +85,8 @@ bing_set_scores_mp:
 
 # Bradley
 
+BRAD=_tmp_bradley_all_
+
 bradley_parse_data:
 	${PY} parse_bradley.py
 
@@ -120,36 +114,6 @@ bradley_prepare_kernels:
 bradley_prepare_scores:
 	${PY} training.py --get-learning-curves --scratch _tmp_subset_
 
-bradley_print_score:
-	${PY} plot.py --scratch _tmp_subset_
-
-# ochem
-
-OCHEMDAT=_tmp_ochem_data_
-OCHEMBP=_tmp_ochem_bp_
-OCHEMMP=_tmp_ochem_mp_
-
-ochem_mp_parse:
-	${PY} parse_ochem.py --scratch ${OCHEMMP} -j 24 --sdf \
-	${OCHEMDAT}/meltingpoints_0_100.sdf.gz \
-	${OCHEMDAT}/meltingpoints_100_200.sdf.gz \
-	${OCHEMDAT}/meltingpoints_200_250.sdf.gz \
-	${OCHEMDAT}/meltingpoints_250_300.sdf.gz \
-	${OCHEMDAT}/meltingpoints_300_350.sdf.gz \
-	${OCHEMDAT}/meltingpoints_350_450.sdf.gz \
-	${OCHEMDAT}/meltingpoints_450_x.sdf.gz
-
-ochem_bp_parse:
-	${PY} parse_ochem.py --scratch ${OCHEMBP} -j 24 --sdf \
-		${OCHEMDAT}/boilingpoints_all.sdf.gz
-
-ochem_overview:
-	${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
-	${PY} plot_overview.py --dict ${OCHEMBP}/molecule_data
-
-ochem_bp_set_xyz:
-	${PY} prepare_structures.py --data ${OCHEMBP} -j 24
-
 
 # ALL
 
@@ -163,22 +127,75 @@ bradall_prepare_scores:
 	${PY} training.py --get-learning-curves --scratch _tmp_all_
 
 
-# Print
+
+# OCHEM
+
+OCHEMDAT=_tmp_ochem_data_
+OCHEMBP=_tmp_ochem_bp_
+OCHEMMP=_tmp_ochem_mp_
+
+ochem_mp_parse:
+	mkdir -p ${OCHEMBP}
+	${PY} parse_ochem.py --scratch ${OCHEMMP} -j 24 --sdf \
+	${OCHEMDAT}/meltingpoints_0_100.sdf.gz \
+	${OCHEMDAT}/meltingpoints_100_200.sdf.gz \
+	${OCHEMDAT}/meltingpoints_200_250.sdf.gz \
+	${OCHEMDAT}/meltingpoints_250_300.sdf.gz \
+	${OCHEMDAT}/meltingpoints_300_350.sdf.gz \
+	${OCHEMDAT}/meltingpoints_350_450.sdf.gz \
+	${OCHEMDAT}/meltingpoints_450_x.sdf.gz
+
+ochem_bp_parse:
+	mkdir -p ${OCHEMBP}
+	${PY} parse_ochem.py --scratch ${OCHEMBP} -j 24 --sdf \
+		${OCHEMDAT}/boilingpoints_all.sdf.gz
+
+ochem_overview:
+	${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
+	${PY} plot_overview.py --dict ${OCHEMBP}/molecule_data
+
+ochem_bp_set_xyz:
+	${PY} prepare_structures.py -j 24 \
+		--datadict ${OCHEMBP}/molecule_data \
+		--scratch ${OCHEMBP}
+
+ochem_bp_set_rep:
+	touch ${OCHEMBP}/slatm.mbtypes
+	rm ${OCHEMBP}/slatm.mbtypes
+	${PY} prepare_representations.py -j 24 \
+		--sdf ${OCHEMBP}/structures.sdf.gz \
+		--scratch ${OCHEMBP}
+
+ochem_bp_set_kernel:
+	${PY} training.py --get-kernels --scratch ${OCHEMBP}
+
+ochem_bp_set_score:
+	${PY} training.py --get-learning-curves --scratch ${OCHEMBP}
+
+
+
+## PRINT RESULTS
 
 print_score_bradley_subset:
 	${PY} plot.py --scratch _tmp_bradley_sub_
 
 print_score_bradley_all:
-	${PY} plot.py --scratch _tmp_bradley_all_
+	${PY} plot.py --scratch ${BRAD}
 
 print_score_bing_bp:
-	${PY} plot.py --scratch _tmp_bing_bp_
+	${PY} plot.py --scratch ${BINGBP}
 
 print_score_bing_mp:
-	${PY} plot.py --scratch _tmp_bing_mp_
+	${PY} plot.py --scratch ${BINGMP}
+
+print_score_ochem_bp:
+	${PY} plot.py --scratch ${OCHEMBP}
+
+print_score_ochem_mp:
+	${PY} plot.py --scratch ${OCHEMMP}
 
 
-#
+## MISC
 
 clean:
 	rm *.pyc __pycache__ _tmp_*
