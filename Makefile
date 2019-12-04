@@ -123,6 +123,16 @@ bradley_prepare_scores:
 bradley_print_score:
 	${PY} plot.py --scratch _tmp_subset_
 
+# ochem
+
+ochem_parse_mp:
+	${PY} parse_ochem.py
+
+ochem_overview:
+	${PY} plot_overview.py --sdf 
+
+
+
 # ALL
 
 bradall_prepare_representations:
