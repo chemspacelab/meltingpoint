@@ -135,7 +135,7 @@ OCHEMBP=_tmp_ochem_bp_
 OCHEMMP=_tmp_ochem_mp_
 
 ochem_mp_parse:
-	mkdir -p ${OCHEMBP}
+	mkdir -p ${OCHEMP}
 	${PY} parse_ochem.py --scratch ${OCHEMMP} -j 24 --sdf \
 	${OCHEMDAT}/meltingpoints_0_100.sdf.gz \
 	${OCHEMDAT}/meltingpoints_100_200.sdf.gz \
@@ -193,6 +193,25 @@ print_score_ochem_bp:
 
 print_score_ochem_mp:
 	${PY} plot.py --scratch ${OCHEMMP}
+
+
+## MERGE
+
+merge_bp:
+	${PY} merge.py --sdf \
+	_tmp_ochem_bp_/structures.sdf.gz \
+	_tmp_bing_bp_/structures.sdf.gz \
+	--name OCHEM SCIFINDER \
+	--filename _fig_overlap_bp
+
+merge_mp:
+	${PY} merge.py --sdf \
+	_tmp_bradley_all_/structures.sdf.gz \
+	_tmp_bing_mp_/structures.sdf.gz \
+	--dict \
+	_tmp_ochem_mp_/molecule_data \
+	--name BRADLEY SCIFINDER OCHEM \
+	--filename _fig_overlap_mp
 
 
 ## MISC

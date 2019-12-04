@@ -5,7 +5,6 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 import numpy as np
 import rdkit.Chem as Chem
-from scipy.spatial import ConvexHull, distance
 
 import misc
 from chemhelp import cheminfo
@@ -52,21 +51,21 @@ def parse_molandprop(*args, debug=False, **kwargs):
     # Count
     atoms = cheminfo.molobj_to_atoms(molobj)
 
-    if len(atoms) < 3:
-        if debug:
-            print("ignore small", props)
-        return None, None
+    # if len(atoms) < 3:
+    #     if debug:
+    #         print("ignore small", props)
+    #     return None, None
 
     # if len(atoms) > 40:
     #     if debug:
     #         print("ignore large", props)
     #     return None, None
 
-    atoms_carbons, = np.where(atoms == 6)
-    if len(atoms_carbons) < 1:
-        if debug:
-            print("ignore non-org", props)
-        return None, None
+    # atoms_carbons, = np.where(atoms == 6)
+    # if len(atoms_carbons) < 1:
+    #     if debug:
+    #         print("ignore non-org", props)
+    #     return None, None
 
     # Add hydrogens and optimize structure
     molobj = cheminfo.molobj_add_hydrogens(molobj)
@@ -193,6 +192,9 @@ def main():
 
     # fsdf.close()
     # fprop.close()
+
+    keys = mol_val_dict.keys()
+    print("TOTAL ITEMS", len(keys))
 
     misc.save_json(args.scratch + "molecule_data", mol_val_dict)
     misc.save_obj(args.scratch + "molecule_data", mol_val_dict)
