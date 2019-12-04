@@ -125,23 +125,30 @@ bradley_print_score:
 
 # ochem
 
-ochem_parse_mp:
-	${PY} parse_ochem.py --scratch _tmp_ochem_mp_ -j 24 --sdf \
-	_tmp_ochem_data_/meltingpoints_0_100.sdf.gz \
-	_tmp_ochem_data_/meltingpoints_100_200.sdf.gz \
-	_tmp_ochem_data_/meltingpoints_200_250.sdf.gz \
-	_tmp_ochem_data_/meltingpoints_250_300.sdf.gz \
-	_tmp_ochem_data_/meltingpoints_300_350.sdf.gz \
-	_tmp_ochem_data_/meltingpoints_350_450.sdf.gz \
-	_tmp_ochem_data_/meltingpoints_450_x.sdf.gz
+OCHEMDAT=_tmp_ochem_data_
+OCHEMBP=_tmp_ochem_bp_
+OCHEMMP=_tmp_ochem_mp_
 
-ochem_parse_bp:
-	${PY} parse_ochem.py --scratch _tmp_ochem_mp_ -j 24 --sdf \
-		_tmp_ochem_data_/boilingpoints_all.sdf.gz
+ochem_mp_parse:
+	${PY} parse_ochem.py --scratch ${OCHEMMP} -j 24 --sdf \
+	${OCHEMDAT}/meltingpoints_0_100.sdf.gz \
+	${OCHEMDAT}/meltingpoints_100_200.sdf.gz \
+	${OCHEMDAT}/meltingpoints_200_250.sdf.gz \
+	${OCHEMDAT}/meltingpoints_250_300.sdf.gz \
+	${OCHEMDAT}/meltingpoints_300_350.sdf.gz \
+	${OCHEMDAT}/meltingpoints_350_450.sdf.gz \
+	${OCHEMDAT}/meltingpoints_450_x.sdf.gz
+
+ochem_bp_parse:
+	${PY} parse_ochem.py --scratch ${OCHEMBP} -j 24 --sdf \
+		${OCHEMDAT}/boilingpoints_all.sdf.gz
 
 ochem_overview:
-	${PY} plot_overview.py --dict _tmp_ochem_mp_/molecule_data
+	${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
+	${PY} plot_overview.py --dict ${OCHEMBP}/molecule_data
 
+ochem_bp_set_xyz:
+	${PY} prepare_structures.py --data ${OCHEMBP} -j 24
 
 
 # ALL
