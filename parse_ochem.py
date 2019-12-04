@@ -57,10 +57,10 @@ def parse_molandprop(*args, debug=False, **kwargs):
             print("ignore small", props)
         return None, None
 
-    if len(atoms) > 40:
-        if debug:
-            print("ignore large", props)
-        return None, None
+    # if len(atoms) > 40:
+    #     if debug:
+    #         print("ignore large", props)
+    #     return None, None
 
     atoms_carbons, = np.where(atoms == 6)
     if len(atoms_carbons) < 1:
