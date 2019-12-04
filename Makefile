@@ -140,7 +140,7 @@ ochem_parse_bp:
 		_tmp_ochem_data_/boilingpoints_all.sdf.gz
 
 ochem_overview:
-	${PY} plot_overview.py --json _tmp_ochem_mp_/molecule_data
+	${PY} plot_overview.py --dict _tmp_ochem_mp_/molecule_data
 
 
 

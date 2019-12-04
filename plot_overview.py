@@ -58,13 +58,13 @@ def stoichiometry(smiles, typ="str", include_hydrogen=True):
     return rtnstoi
 
 
+@misc.memory.cache
+def split_dict(filename, load_func):
 
-
-def view_values_molecules(data, filename):
+    data = load_func(filename)
 
     xvalues = []
     yvalues = []
-
 
     for key in data.keys():
 
@@ -90,13 +90,25 @@ def view_values_molecules(data, filename):
     xvalues = np.array(xvalues, dtype=int)
     yvalues = np.array(yvalues)
 
+    return xvalues, yvalues
+
+
+def view_values_molecules(xvalues, yvalues, filename):
+    """
+    xvalues - no of atoms
+    yvalues - phase transistion
+    """
+
+    print("Max atoms:", xvalues.max())
+    print("Min atoms:", xvalues.min())
+    print("Mean and std atoms:", xvalues.mean(), xvalues.std())
+
     # Filter
     max_atoms = 90
     idxs, = np.where(xvalues < max_atoms)
 
     xvalues = xvalues[idxs]
     yvalues = yvalues[idxs]
-
 
     n_items = xvalues.shape[0]
 
@@ -105,7 +117,6 @@ def view_values_molecules(data, filename):
     views.histogram_2d_with_kde(xvalues, yvalues, filename=filename+"_overview")
 
     return
-
 
 
 def main():
@@ -118,14 +129,14 @@ def main():
     args = parser.parse_args()
 
     if args.dict:
-        data = misc.load_obj(args.dict)
+        xvalues, yvalues = split_dict(args.dict, misc.load_obj)
         filename = args.dict
 
     if args.json:
-        data = misc.load_json(args.json)
+        xvalues, yvalues = split_dict(args.json, misc.load_obj)
         filename = args.json
 
-    view_values_molecules(data, filename)
+    view_values_molecules(xvalues, yvalues, filename)
 
     return
 

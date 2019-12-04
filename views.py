@@ -98,8 +98,8 @@ def pca_with_properties(kernel, properties, filename):
 
 
 def histogram_2d_with_kde(xvalues, yvalues,
-        xlabel="# Heavy atoms",
-        ylabel="Value [Kelvin]",
+        xlabel="Heavy atoms",
+        ylabel="Kelvin",
         filename="overview_scathis",
         debug=False):
 
@@ -147,19 +147,32 @@ def histogram_2d_with_kde(xvalues, yvalues,
     # scatter plot
     # ax_scatter.scatter(xvalues, yvalues, color="k", alpha=0.4)
 
+    # Hack to make MPL hide the overlap of hexacons
     lineswidth=0.0 # white lines
     lineswidth=0.2 # perfect fit
+    # lineswidth=0.3
+
     colormap = 'Greys'
     colormap = 'PuRd'
 
-    hb = ax_scatter.hexbin(xvalues, yvalues, gridsize=60, bins='log', cmap='PuRd', linewidths=0.3, mincnt=1)
+    hex_density = 30
+
+    hexbinpar = {
+        'gridsize': hex_density,
+        'cmap': colormap,
+        'linewidths': lineswidth,
+        'mincnt': 1,
+        'bins': 'log',
+    }
+
+    hb = ax_scatter.hexbin(xvalues, yvalues, **hexbinpar)
 
     # define binwidth
     x_max = np.max(xvalues)
     x_min = np.min(xvalues)
     x_binwidth = (abs(x_min) + x_max) / 30.0
     x_binwidth = int(x_binwidth)
-    x_binwidth = 1
+    x_binwidth = 1.0
     x_bins = np.arange(x_min, x_max+x_binwidth, x_binwidth)
 
     y_max = np.max(yvalues)
@@ -168,13 +181,12 @@ def histogram_2d_with_kde(xvalues, yvalues,
     y_binwidth = int(y_binwidth)
     y_bins = np.arange(y_min, y_max+y_binwidth, y_binwidth)
 
-    # xlim = (x_min-x_binwidth, x_max+x_binwidth)
-    # ylim = (y_min-y_binwidth, y_max+y_binwidth)
 
     # Set limits and ticks of scatter
-    xlim = (0, 70)
+    xlim = (x_min-x_binwidth*2, x_max+x_binwidth*2)
+    ylim = (0-y_binwidth*2, y_max+y_binwidth*2)
     ax_scatter.set_xlim(xlim)
-    # ax_scatter.set_ylim(ylim)
+    ax_scatter.set_ylim(ylim)
 
     xkeys = np.arange(10, x_max+x_binwidth*2, 10)
     xkeys = [1] + list(xkeys)
@@ -182,18 +194,20 @@ def histogram_2d_with_kde(xvalues, yvalues,
 
     # Histogram
 
-    bins = np.linspace(x_min, x_max, 200)
-    gaussian_kernel = gaussian_kde(xvalues)
-    values = gaussian_kernel(bins)
-    ax_histx.plot(bins, values, "k", linewidth=1.0)
+    if True:
+        bins = np.linspace(min(xkeys), max(xkeys), 300)
+        gaussian_kernel = gaussian_kde(xvalues)
+        values = gaussian_kernel(bins)
+        ax_histx.plot(bins, values, "k", linewidth=1.0)
 
-    bins = np.linspace(y_min, y_max, 200)
-    gaussian_kernel = gaussian_kde(yvalues)
-    values = gaussian_kernel(bins)
-    ax_histy.plot(values, bins, "k", linewidth=1.0)
+        bins = np.linspace(min(ykeys), max(ykeys), 300)
+        gaussian_kernel = gaussian_kde(yvalues)
+        values = gaussian_kernel(bins)
+        ax_histy.plot(values, bins, "k", linewidth=1.0)
 
-    # ax_histx.hist(xvalues, bins=x_bins, histtype='step', color="k")
-    # ax_histy.hist(yvalues, bins=y_bins, orientation='horizontal', histtype='step', color="k")
+    else:
+        ax_histx.hist(xvalues, bins=x_bins, histtype='step', color="k")
+        ax_histy.hist(yvalues, bins=y_bins, orientation='horizontal', histtype='step', color="k")
 
     ax_histx.set_xlim(ax_scatter.get_xlim())
     ax_histy.set_ylim(ax_scatter.get_ylim())
