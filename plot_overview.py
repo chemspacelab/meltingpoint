@@ -103,10 +103,21 @@ def view_values_molecules(xvalues, yvalues, filename):
     print("Min atoms:", xvalues.min())
     print("Mean and std atoms:", xvalues.mean(), xvalues.std())
 
+    y_mean = yvalues.mean()
+    y_std = yvalues.std()
+
+    print("Max value", yvalues.max())
+    print("Min value", yvalues.min())
+    print("Mean value", yvalues.mean(), yvalues.std())
+
     # Filter
     max_atoms = 90
     idxs, = np.where(xvalues < max_atoms)
+    xvalues = xvalues[idxs]
+    yvalues = yvalues[idxs]
 
+    # Fillter outliers
+    idxs, = np.where(yvalues < y_mean+y_std*4)
     xvalues = xvalues[idxs]
     yvalues = yvalues[idxs]
 

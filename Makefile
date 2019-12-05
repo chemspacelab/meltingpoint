@@ -151,7 +151,7 @@ ochem_bp_parse:
 		${OCHEMDAT}/boilingpoints_all.sdf.gz
 
 ochem_overview:
-	${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
+	# ${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
 	${PY} plot_overview.py --dict ${OCHEMBP}/molecule_data
 
 ochem_bp_set_xyz:
@@ -216,8 +216,11 @@ merge_mp:
 
 ## MISC
 
+cleancache:
+	rm -r __pycache__
+
 clean:
-	rm *.pyc __pycache__ _tmp_*
+	rm -r *.pyc __pycache__ .pycache
 
 super-clean:
 	rm -fr data env __pycache__

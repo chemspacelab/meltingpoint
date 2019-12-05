@@ -12,7 +12,7 @@ import json
 
 from queue import Empty
 
-cachedir = '.pycache'
+cachedir = '__pycache__'
 memory = joblib.Memory(cachedir, verbose=0)
 # Usage
 # @memory.cache

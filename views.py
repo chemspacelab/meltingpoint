@@ -150,7 +150,7 @@ def histogram_2d_with_kde(xvalues, yvalues,
     # Hack to make MPL hide the overlap of hexacons
     lineswidth=0.0 # white lines
     lineswidth=0.2 # perfect fit
-    # lineswidth=0.3
+    lineswidth=0.3 # fit for pngs
 
     colormap = 'Greys'
     colormap = 'PuRd'
