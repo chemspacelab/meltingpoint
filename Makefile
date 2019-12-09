@@ -135,7 +135,7 @@ OCHEMBP=_tmp_ochem_bp_
 OCHEMMP=_tmp_ochem_mp_
 
 ochem_mp_parse:
-	mkdir -p ${OCHEMP}
+	mkdir -p ${OCHEMMP}
 	${PY} parse_ochem.py --scratch ${OCHEMMP} -j 24 --sdf \
 	${OCHEMDAT}/meltingpoints_0_100.sdf.gz \
 	${OCHEMDAT}/meltingpoints_100_200.sdf.gz \

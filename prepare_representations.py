@@ -343,9 +343,24 @@ def main():
         mol_atoms, mol_coords = xyzs
         misc.save_obj(args.scratch + "atoms", mol_atoms)
 
-        #  Calculate max_size
+        # Print unique atoms
+        unique_atoms = []
+        for atoms in mol_atoms:
+            unique_atoms += list(np.unique(atoms))
+
+        unique_atoms = np.array(unique_atoms)
+        unique_atoms = unique_atoms.flatten()
+        unique_atoms = np.unique(unique_atoms)
+
+        # Calculate max_size
         max_atoms = [len(atoms) for atoms in mol_atoms]
         max_atoms = max(max_atoms)
+
+        print("total mols:", len(mol_coords))
+        print("atom types:", unique_atoms)
+        print("max atoms: ", max_atoms)
+
+        quit()
 
         # Gas phase
         for name in representation_names:

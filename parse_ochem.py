@@ -72,7 +72,7 @@ def parse_molandprop(*args, debug=False, **kwargs):
     status = cheminfo.molobj_optimize(molobj)
 
     # if unconverged
-    if status != 0:
+    if status == 5:
 
         # try the smiles
         molobj, status = cheminfo.smiles_to_molobj(prop_smiles)
@@ -83,7 +83,7 @@ def parse_molandprop(*args, debug=False, **kwargs):
         molobj = cheminfo.molobj_add_hydrogens(molobj)
         status = cheminfo.molobj_optimize(molobj)
 
-        if status != 0:
+        if status == 5:
             print("error", props)
             return None, None
 
