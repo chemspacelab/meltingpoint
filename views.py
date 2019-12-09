@@ -151,11 +151,12 @@ def histogram_2d_with_kde(xvalues, yvalues,
     lineswidth=0.0 # white lines
     lineswidth=0.2 # perfect fit
     lineswidth=0.3 # fit for pngs
+    lineswidth=0.4 # fit for pngs
 
     colormap = 'Greys'
     colormap = 'PuRd'
 
-    hex_density = 30
+    hex_density = 50
 
     hexbinpar = {
         'gridsize': hex_density,
