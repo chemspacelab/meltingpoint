@@ -7,6 +7,10 @@ import pickle
 import misc
 from chemhelp import cheminfo
 
+ALLOWED_ATOMS = [
+    1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
+]
+
 @misc.memory.cache
 def main():
 
@@ -23,15 +27,12 @@ def main():
     data = data.drop(columns="link")
     data = data.drop(columns="source")
 
-    # print(data)
-
     data.to_csv("data/melting_bradley.csv", sep=",", index=False)
-
 
     return data
 
 
-def clean_data(df):
+def clean_data(df, scratch):
 
     smiles = df.iloc[1]
 
@@ -61,19 +62,28 @@ def clean_data(df):
 
         data[smi].append(value)
 
-
     atom_types, counts = np.unique(atom_types, return_counts=True)
 
     for atom, count in zip(atom_types, counts):
         print(atom, count)
 
-    misc.save_obj("data/melting_bradley_clean", data)
+    misc.save_obj(scratch + "molecule_data", data)
+    misc.save_json(scratch + "molecule_data", data)
 
     return
 
-
-
 if __name__ == "__main__":
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--scratch', action='store', help='', metavar="DIR", default="_tmp_")
+    parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0, type=int)
+
+    args = parser.parse_args()
+
+    if args.scratch[-1] != "/":
+        args.scratch += "/"
+
     pd = main()
-    data = clean_data(pd)
+    data = clean_data(pd, args.scratch)
 

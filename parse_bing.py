@@ -7,6 +7,9 @@ import pickle
 import misc
 from chemhelp import cheminfo
 
+ALLOWED_ATOMS = [
+    1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
+]
 
 def read_csv(filename, read_header=True, sep=None):
 
@@ -36,37 +39,34 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', action='store', help='', metavar='FILE')
+    parser.add_argument('--scratch', action='store', help='', metavar="DIR", default="_tmp_")
     parser.add_argument('-j', '--procs', action='store', help='', type=int, metavar='int', default=0)
     args = parser.parse_args()
 
-    # data = pd.read_csv(args.data, sep=" ")
+    if args.scratch[-1] != "/":
+        args.scratch += "/"
 
     header, data = read_csv(args.data, read_header=True)
-
     data = clean_data(data)
 
-    misc.save_obj(args.data.replace(".txt", ""), data)
+    misc.save_obj(args.scratch + "molecule_data", data)
+    misc.save_json(args.scratch + "molecule_data", data)
 
     return
 
 
-def is_mol_allowed(atoms, allowed_atoms):
+def is_mol_allowed(atoms, allowed_atoms=ALLOWED_ATOMS):
 
     atoms = np.unique(atoms)
 
     for atom in atoms:
-        if atom not in allowed_atoms:
+        if atom not in ALLOWED_ATOMS:
             return False
 
     return True
 
 
 def clean_data(listdata):
-
-
-    allowed_atoms = [
-        1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
-    ]
 
     data = {}
 
@@ -90,7 +90,7 @@ def clean_data(listdata):
         atoms = cheminfo.molobj_to_atoms(molobj)
 
         # filter for organic chemistry
-        if not is_mol_allowed(atoms, allowed_atoms):
+        if not is_mol_allowed(atoms):
             continue
 
         atom_types += list(atoms)

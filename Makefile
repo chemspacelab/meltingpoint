@@ -39,7 +39,7 @@ data:
 # Bing dataset
 
 BINGMP=_tmp_bing_mp_
-BINGBP=_tmp_bing_mp_
+BINGBP=_tmp_bing_bp_
 
 bing_parse_data:
 	${PY} parse_bing.py --data data/bing/bp_scifinder.txt --scratch ${BINGBP}
@@ -88,7 +88,7 @@ bing_set_scores_mp:
 BRAD=_tmp_bradley_all_
 
 bradley_parse_data:
-	${PY} parse_bradley.py
+	${PY} parse_bradley.py --scratch ${BRAD}
 
 bradley_overview:
 	${PY} plot_overview.py --dict data/melting_bradley
@@ -151,7 +151,7 @@ ochem_bp_parse:
 		${OCHEMDAT}/boilingpoints_all.sdf.gz
 
 ochem_overview:
-	# ${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
+	${PY} plot_overview.py --dict ${OCHEMMP}/molecule_data
 	${PY} plot_overview.py --dict ${OCHEMBP}/molecule_data
 
 ochem_bp_set_xyz:
@@ -171,6 +171,39 @@ ochem_bp_set_kernel:
 
 ochem_bp_set_score:
 	${PY} training.py --get-learning-curves --scratch ${OCHEMBP}
+
+
+
+## MERGE
+
+MERGEBP=_tmp_merge_bp_
+MERGEMP=_tmp_merge_mp_
+
+merge_bp:
+	mkdir -p ${MERGEBP}
+	${PY} merge.py --dict \
+	${BINGBP}/molecule_data \
+	${OCHEMBP}/molecule_data \
+	--scratch ${MERGEBP}
+
+merge_mp:
+	mkdir -p ${MERGEMP}
+	${PY} merge.py --dict \
+	${BINGMP}/molecule_data \
+	${OCHEMMP}/molecule_data \
+	--scratch ${MERGEMP}
+
+ochem_overview:
+	${PY} plot_overview.py --dict ${MERGEMP}/molecule_data
+	${PY} plot_overview.py --dict ${MERGEBP}/molecule_data
+
+
+merge_bp_set_xyz:
+	${PY} prepare_structures.py -j 24 \
+		--datadict ${MERGEBP}/molecule_data \
+		--scratch ${MERGEBP}
+
+
 
 
 
@@ -194,24 +227,6 @@ print_score_ochem_bp:
 print_score_ochem_mp:
 	${PY} plot.py --scratch ${OCHEMMP}
 
-
-## MERGE
-
-merge_bp:
-	${PY} merge.py --sdf \
-	_tmp_ochem_bp_/structures.sdf.gz \
-	_tmp_bing_bp_/structures.sdf.gz \
-	--name OCHEM SCIFINDER \
-	--filename _fig_overlap_bp
-
-merge_mp:
-	${PY} merge.py --sdf \
-	_tmp_bradley_all_/structures.sdf.gz \
-	_tmp_bing_mp_/structures.sdf.gz \
-	--dict \
-	_tmp_ochem_mp_/molecule_data \
-	--name BRADLEY SCIFINDER OCHEM \
-	--filename _fig_overlap_mp
 
 
 ## MISC

@@ -9,6 +9,9 @@ import rdkit.Chem as Chem
 import misc
 from chemhelp import cheminfo
 
+ALLOWED_ATOMS = [
+    1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
+]
 
 def parse_molobj(molobj, debug=False, **kwargs):
 
