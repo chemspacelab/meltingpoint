@@ -2,6 +2,7 @@ test.py
 test/
 qml
 qml-*
+src/qml
 
 *.png
 *.pdf
