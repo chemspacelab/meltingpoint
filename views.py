@@ -8,6 +8,36 @@ from matplotlib.ticker import NullFormatter
 from matplotlib import ticker
 from scipy.stats import gaussian_kde
 
+
+
+def save(filename, fig=plt):
+    fig.savefig(filename, bbox_inches="tight")
+    fig.savefig(filename + ".pdf", bbox_inches="tight")
+    fig.clf()
+    return
+
+
+def border(ax, border=[False, False, True, True]):
+
+    spines = ax.spines.items()
+
+    for direction, spine in spines:
+
+        if direction == "top":
+            spine.set_visible(border[0])
+
+        if direction == "right":
+            spine.set_visible(border[1])
+
+        if direction == "bottom":
+            spine.set_visible(border[2])
+
+        if direction == "left":
+            spine.set_visible(border[3])
+
+    return
+
+
 def set_border(ax, xkeys, ykeys,
     border=[False, False, True, True]):
     """
@@ -156,7 +186,7 @@ def histogram_2d_with_kde(xvalues, yvalues,
     colormap = 'Greys'
     colormap = 'PuRd'
 
-    hex_density = 50
+    hex_density = 20
 
     hexbinpar = {
         'gridsize': hex_density,

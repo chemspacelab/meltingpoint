@@ -193,9 +193,9 @@ merge_mp:
 	${OCHEMMP}/molecule_data \
 	--scratch ${MERGEMP}
 
-ochem_overview:
-	${PY} plot_overview.py --dict ${MERGEMP}/molecule_data
+merge_overview:
 	${PY} plot_overview.py --dict ${MERGEBP}/molecule_data
+	${PY} plot_overview.py --dict ${MERGEMP}/molecule_data
 
 
 merge_bp_set_xyz:
