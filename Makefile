@@ -1,6 +1,7 @@
 
 PY=python
 CONDA=conda
+BIN=src/
 
 all:
 	@echo "Read the Makefile"

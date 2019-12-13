@@ -10,6 +10,8 @@ figs/
 data/
 statsig/
 chemhelp/
+src/statsig/
+src/chemhelp/
 .pycache/
 _tmp_/
 _tmp_*
