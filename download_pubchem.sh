@@ -4,6 +4,10 @@
 # Download first page to find page ranges, then do for-loop and download all
 # pages for melting and boiling phases
 #
+# Specific compounds can be download with specific id
+# x=$1
+# wget -O data/$x.json https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/$x/JSON/
+#
 
 phase=$1
 page=$2
