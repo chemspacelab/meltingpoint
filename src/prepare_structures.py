@@ -29,6 +29,20 @@ import misc
 #       sdf/structures.11965.sdf.gz
 
 
+ALLOWED_ATOMS = [
+    1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
+]
+
+def is_allowed_atoms(atoms, allowed_atoms=ALLOWED_ATOMS):
+
+    atoms = np.unique(atoms)
+
+    for atom in atoms:
+        if atom not in ALLOWED_ATOMS:
+            return False
+
+    return True
+
 
 def generate_conformers(molobj, max_conf=100, min_conf=10):
 
@@ -113,17 +127,20 @@ def prepare_sdf_and_csv(smi, values, debug=True, **kwargs):
 
     kelvin = np.array(values)
 
-    # TODO histogram of sigma
+    # 
     standard_deviation = np.std(kelvin)
     mean = np.mean(kelvin)
 
+    # Load molecule information
     molobj = Chem.MolFromSmiles(smi)
-
-    n_atoms = len(molobj.GetAtoms())
+    atoms = cheminfo.molobj_to_atoms(molobj)
+    n_atoms = len(atoms)
 
     # NOTE This is a choice
+    # NOTE Filter organic chemistry
     if n_atoms > 50: return None
     if n_atoms < 4: return None
+    if not is_allowed_atoms(atoms): return None
 
     molobj = Chem.AddHs(molobj)
 
@@ -133,18 +150,13 @@ def prepare_sdf_and_csv(smi, values, debug=True, **kwargs):
 
     if molobj is None: return None
 
-    sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+    # sdfstr = cheminfo.molobj_to_sdfstr(molobj)
 
-    # fsdf.write(sdfstr.encode())
-    #
-    # propstr = "{:} {:} {:}\n".format(i, mean, standard_deviation)
-    # fprop.write(propstr)
-    #
-    # other_end = time.time()
     if debug:
         print("{:4.1f}".format(mean), "{:1.2f}".format(standard_deviation))
 
-    return molobj, mean, standard_deviation
+    # return molobj, mean, standard_deviation, values
+    return molobj, values
 
 
 def main(datafile, procs=0, scr="_tmp_"):
@@ -158,34 +170,21 @@ def main(datafile, procs=0, scr="_tmp_"):
     xaxis = []
     yaxis = []
 
-    fullsdf = ""
-    fsdf = gzip.open("data/sdf/structures.sdf.gz", 'w')
-    fprop = open("data/sdf/properties.csv", 'w')
-
-
-    # TODO Do parallel
-
     if procs == 0:
-        for i, key in enumerate(keys):
+        def get_results():
 
-            smi = key
-            kelvin = db[key]
+            for i, key in enumerate(keys):
 
-            results = prepare_sdf_and_csv(smi, kelvin)
+                smi = key
+                kelvin = db[key]
+                result = prepare_sdf_and_csv(smi, kelvin)
+                if result is None: continue
 
-            if results is None: continue
+                yield result
 
-            molobj, mean, standard_deviation = results
-
-            sdfstr = cheminfo.molobj_to_sdfstr(molobj)
-            fsdf.write(sdfstr.encode())
-
-            propstr = "{:} {:} {:}\n".format(i, mean, standard_deviation)
-            fprop.write(propstr)
-
+        results = get_results()
 
     else:
-
         def workpackages():
             for i, key in enumerate(keys):
 
@@ -201,18 +200,25 @@ def main(datafile, procs=0, scr="_tmp_"):
 
         print("streaming results")
 
-        for i, result in enumerate(results):
+    # Write results
 
-            if result is None: continue
+    fullsdf = ""
+    fsdf = gzip.open("data/sdf/structures.sdf.gz", 'w')
+    fprop = open("data/sdf/properties.csv", 'w')
 
-            molobj, mean, standard_deviation = result
+    for i, result in enumerate(results):
 
-            sdfstr = cheminfo.molobj_to_sdfstr(molobj)
-            fsdf.write(sdfstr.encode())
+        if result is None: continue
 
-            propstr = "{:} {:}\n".format(mean, standard_deviation)
-            fprop.write(propstr)
+        molobj, values = result
 
+        sdfstr = cheminfo.molobj_to_sdfstr(molobj)
+        fsdf.write(sdfstr.encode())
+
+        valuesstr = " ".join(values)
+        # propstr = "{:} {:}\n".format(mean, standard_deviation)
+        propstr = f"{i} " + valuestr
+        fprop.write(propstr)
 
     fsdf.close()
     fprop.close()
@@ -235,13 +241,16 @@ def set_structures(datadict, scratch, procs=0):
     # no mp
     if procs == 0:
 
-        values = []
-        for key in keys:
-            values.append(datadict[key])
+        def get_results():
+            values = []
+            for key in keys:
+                values.append(datadict[key])
 
-        for smi, value in zip(keys, values):
-            result = prepare_sdf_and_csv(smi, value)
-            results.append(result)
+            for smi, value in zip(keys, values):
+                result = prepare_sdf_and_csv(smi, value)
+                yield result
+
+        results = get_results()
 
     # scale it out
     elif procs > 0:
@@ -270,17 +279,22 @@ def set_structures(datadict, scratch, procs=0):
 
         if result is None: continue
 
-        molobj, mean, standard_deviation = result
+        molobj, values = result
 
-        print("save {:4.1f}".format(mean), "{:1.2f}".format(standard_deviation))
+        mean = np.mean(values)
+
+        prtstr = np.round(values, decimals=1)
+
+        print("save {:4.1f}".format(mean), "-", prtstr)
 
         sdfstr = cheminfo.molobj_to_sdfstr(molobj)
         sdfstr += "$$$$\n"
         fsdf.write(sdfstr.encode())
 
-        propstr = "{:} {:}\n".format(mean, standard_deviation)
+        valuesstr = " ".join([str(x) for x in values])
+        # propstr = "{:} {:}\n".format(mean, standard_deviation)
+        propstr = f"{i} " + valuestr
         fprop.write(propstr)
-
 
     fsdf.close()
     fprop.close()

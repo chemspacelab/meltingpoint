@@ -222,13 +222,22 @@ merge_overview:
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
 
-
 merge_bp_set_xyz:
 	${PY} ${BIN}/prepare_structures.py -j 24 \
 		--datadict ${MERGEBP}/molecule_data \
 		--scratch ${MERGEBP}
 
+merge_mp_set_xyz:
+	${PY} prepare_structures.py -j 24 \
+		--datadict ${MERGEMP}/molecule_data \
+		--scratch ${MERGEMP}
 
+merge_bp_set_rep:
+	touch ${MERGEBP}/slatm.mbtypes
+	rm ${MERGEBP}/slatm.mbtypes
+	${PY} prepare_representations.py -j 24 \
+		--sdf ${MERGEBP}/structures.sdf.gz \
+		--scratch ${MERGBP}
 
 
 
