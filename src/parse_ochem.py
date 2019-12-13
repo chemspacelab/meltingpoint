@@ -1,4 +1,5 @@
 
+import os
 import gzip
 
 import multiprocessing as mp
@@ -90,6 +91,14 @@ def parse_molandprop(*args, debug=False, **kwargs):
             print("error", props)
             return None, None
 
+    idx_ref = [key for key in keys if "{measured}" in key]
+    idx_ref = idx_ref[0]
+
+    value = str(props[idx_ref])
+    if "<" in value:
+        return None, None
+    if ">" in value:
+        return None, None
 
     idx_value = [key for key in keys if "measured, converted" in key]
     idx_value = idx_value[0]
@@ -165,6 +174,9 @@ def main():
 
     if args.scratch[-1] != "/":
         args.scratch += "/"
+
+    if args.procs == -1:
+        args.procs = os.cpu_count()
 
     # fsdf = gzip.open(args.scratch + "structures.sdf.gz", 'w')
     # fprop = open(args.scratch + "properties.csv", 'w')

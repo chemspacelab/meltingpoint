@@ -133,6 +133,8 @@ def split_dict(filename, load_func):
         N = len(stoi)
         xvalues.append(N)
 
+    print(xvalues)
+
     xvalues = np.array(xvalues, dtype=int)
     yvalues = np.array(yvalues)
     yvalues_std = np.array(yvalues_std)
@@ -286,7 +288,8 @@ def main():
         xvalues, yvalues = split_dict(args.json, misc.load_obj)
         filename = args.json
 
-    # view_values_molecules(xvalues, yvalues, filename)
+    # 2d histogram
+    view_values_molecules(xvalues, yvalues, filename)
 
     if yvaln.shape[0] == 0:
         return

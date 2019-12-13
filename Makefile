@@ -148,7 +148,7 @@ ochem_mp_parse:
 
 ochem_bp_parse:
 	mkdir -p ${OCHEMBP}
-	${PY} ${BIN}/parse_ochem.py --scratch ${OCHEMBP} -j 24 --sdf \
+	${PY} ${BIN}/parse_ochem.py --scratch ${OCHEMBP} -j -1 --sdf \
 		${OCHEMDAT}/boilingpoints_all.sdf.gz
 
 ochem_overview:
@@ -173,6 +173,24 @@ ochem_bp_set_kernel:
 ochem_bp_set_score:
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${OCHEMBP}
 
+
+## pubchem
+
+PUBCHEMDATA=_tmp_pubchem_data_
+PUBCHEMMP=_tmp_pubchem_mp_
+PUBCHEMBP=_tmp_pubchem_bp_
+
+pubchem_mp_parse:
+	mkdir -p ${PUBCHEMMP}
+	${PY} ${BIN}/parse_pubchem.py --scratch ${PUBCHEMMP} -j 24 --json ${PUBCHEMDATA}/meltingpoints.json
+
+pubchem_bp_parse:
+	mkdir -p ${PUBCHEMBP}
+	${PY} ${BIN}/parse_pubchem.py --scratch ${PUBCHEMBP} -j 24 --json ${PUBCHEMDATA}/boilingpoints.json
+
+pubchem_overview:
+	${PY} ${BIN}/plot_overview.py --dict ${PUBCHEMBP}/molecule_data
+	${PY} ${BIN}/plot_overview.py --dict ${PUBCHEMMP}/molecule_data
 
 
 ## MERGE
