@@ -31,6 +31,7 @@ def main():
     if args.scratch[-1] != "/":
         args.scratch += "/"
 
+    print()
     databases_set = []
     databases_dict = []
 
@@ -68,6 +69,8 @@ def main():
                 everything[key] += data[key]
 
         keys = everything.keys()
+
+        print()
         print(args.scratch, len(keys))
 
         # Save

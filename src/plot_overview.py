@@ -133,8 +133,6 @@ def split_dict(filename, load_func):
         N = len(stoi)
         xvalues.append(N)
 
-    print(xvalues)
-
     xvalues = np.array(xvalues, dtype=int)
     yvalues = np.array(yvalues)
     yvalues_std = np.array(yvalues_std)
@@ -150,6 +148,10 @@ def view_std_values(yvalstd, filename):
     # idx, = np.where(yvalstd > 1.0)
     # yvalstd = yvalstd[idx]
 
+    # sane filter
+    idx, = np.where(yvalstd < 500)
+    yvalstd = yvalstd[idx]
+
     # HACKED
     n_points = yvalstd.shape[0]
     yvalstd_copy = np.zeros(2*n_points)
@@ -164,7 +166,7 @@ def view_std_values(yvalstd, filename):
 
     # Trunc-norm fit
     mu = 0.0
-    std = stats.truncnorm.fit(yvalstd, 1.0, 100.0, floc=0, scale=1.0)
+    std = stats.truncnorm.fit(yvalstd, 2.0, 150.0, floc=0, scale=1.0)
     std = std[-1]
     std = np.sqrt(std)/np.sqrt(2)
 

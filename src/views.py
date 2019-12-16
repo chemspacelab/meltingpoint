@@ -186,13 +186,13 @@ def histogram_2d_with_kde(xvalues, yvalues,
     colormap = 'Greys'
     colormap = 'PuRd'
 
-    hex_density = 20
+    hex_density = 25
 
     hexbinpar = {
         'gridsize': hex_density,
         'cmap': colormap,
         'linewidths': lineswidth,
-        'mincnt': 1,
+        'mincnt': 2,
         'bins': 'log',
     }
 
@@ -213,15 +213,26 @@ def histogram_2d_with_kde(xvalues, yvalues,
     y_bins = np.arange(y_min, y_max+y_binwidth, y_binwidth)
 
 
-    # Set limits and ticks of scatter
-    xlim = (x_min-x_binwidth*2, x_max+x_binwidth*2)
-    ylim = (0-y_binwidth*2, y_max+y_binwidth*2)
-    ax_scatter.set_xlim(xlim)
-    ax_scatter.set_ylim(ylim)
-
+    # scatter keys
     xkeys = np.arange(10, x_max+x_binwidth*2, 10)
     xkeys = [1] + list(xkeys)
     ykeys = np.arange(0, y_max+y_binwidth, 100)
+
+    # filter ykeys
+    n_keys = len(ykeys)
+    if n_keys > 12:
+        ykeys = np.arange(0, y_max+y_binwidth, 150)
+
+    # Set limits and ticks of scatter
+    # TODO More space to x-axis
+    xkeys_min = min(xkeys)
+    xkeys_max = max(xkeys)
+    diff = xkeys[2]-xkeys[1]
+    xlim = (xkeys_min-0.8*diff, xkeys_max+0.8*diff)
+    ylim = (0-y_binwidth*5, y_max+y_binwidth*2)
+    ax_scatter.set_xlim(xlim)
+    ax_scatter.set_ylim(ylim)
+
 
     # Histogram
 

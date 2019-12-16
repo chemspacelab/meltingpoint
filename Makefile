@@ -86,7 +86,7 @@ bing_set_scores_mp:
 
 # Bradley
 
-BRAD=_tmp_bradley_all_
+BRADLEYMP=_tmp_bradley_all_
 
 bradley_parse_data:
 	${PY} ${BIN}/parse_bradley.py --scratch ${BRAD}
@@ -203,6 +203,7 @@ merge_bp:
 	${PY} ${BIN}/merge.py --dict \
 	${BINGBP}/molecule_data \
 	${OCHEMBP}/molecule_data \
+	${PUBCHEMBP}/molecule_data \
 	--scratch ${MERGEBP}
 
 merge_mp:
@@ -210,6 +211,8 @@ merge_mp:
 	${PY} ${BIN}/merge.py --dict \
 	${BINGMP}/molecule_data \
 	${OCHEMMP}/molecule_data \
+	${BRADLEYMP}/molecule_data \
+	${PUBCHEMMP}/molecule_data \
 	--scratch ${MERGEMP}
 
 merge_overview:
