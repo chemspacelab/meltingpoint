@@ -83,6 +83,80 @@ def stoichiometry(smiles, typ="str", include_hydrogen=True):
     return rtnstoi
 
 
+@misc.memory.cache(ignore=['debug','data'])
+def get_medians(data, keyword=None, debug=False):
+
+    print("getting medians")
+
+    rtndata = []
+
+    for value in data:
+        value = np.median(value)
+        rtndata.append(value)
+
+    rtndata = np.array(rtndata)
+
+    return rtndata
+
+
+@misc.memory.cache(ignore=['debug','data'])
+def get_distances(data, keyword=None, decimals=0, debug=False):
+
+    rtndata = []
+
+    for values in data:
+
+        uvalues = np.round(values, decimals=decimals)
+        uvalues = np.unique(uvalues)
+        n_values = len(uvalues)
+
+        # dists = []
+
+        for i in range(n_values):
+            for j in range(i+1, n_values):
+                diff = abs(uvalues[i]-uvalues[j])
+                # dists.append(diff)
+                rtndata.append(diff)
+
+        # rtndata.append(dists)
+
+    rtndata = np.array(rtndata)
+
+    return rtndata
+
+
+@misc.memory.cache
+def get_xy(filename, load_func):
+    """
+    return
+        xvalues - no of atoms
+        yvalues - list of list of values
+    """
+
+    print("reading", filename)
+
+    data = load_func(filename)
+
+    xvalues = []
+    yvalues = []
+
+    for key in data.keys():
+
+        value = data[key]
+        value = np.array(value)
+        yvalues.append(value)
+
+        smiles = key
+        stoi = stoichiometry(smiles, include_hydrogen=False, typ="int")
+        N = len(stoi)
+        xvalues.append(N)
+
+
+    xvalues = np.array(xvalues)
+
+    return xvalues, yvalues
+
+
 @misc.memory.cache
 def split_dict(filename, load_func):
 
@@ -90,6 +164,7 @@ def split_dict(filename, load_func):
 
     xvalues = []
     yvalues = []
+    yvalues_mean = []
     yvalues_n = []
     yvalues_std = []
     yvalues_diff = []
@@ -112,13 +187,17 @@ def split_dict(filename, load_func):
                 # std_values = np.std(uvalues, ddof=1.5) / 0.8
                 std_values = np.std(uvalues)
 
+            dists = []
+
             for i in range(n_values):
                 for j in range(i+1, n_values):
                     diff = abs(uvalues[i]-uvalues[j])
                     yvalues_distances.append(diff)
+                    dists.append(diff)
 
             yvalues_n.append(n_values)
             yvalues_std.append(std_values)
+            yvalues_diff.append(dists)
 
             value = np.mean(value)
 
@@ -139,24 +218,94 @@ def split_dict(filename, load_func):
     yvalues_n = np.array(yvalues_n)
     yvalues_distances = np.array(yvalues_distances)
 
-    return xvalues, yvalues, yvalues_n, yvalues_std, yvalues_distances
+    return xvalues, yvalues, yvalues_n, yvalues_std, yvalues_diff, yvalues_distances
 
 
-def view_std_values(yvalstd, filename):
+def view_dist_vs_x(yvalues_list, xvalues, filename):
+
+    fig, axs = plt.subplots(1, 1, figsize=(6,6))
+    ax = axs
+
+
+    xdata = []
+    ydata = []
+
+    for yvalues in yvalues_list:
+
+        yvalues = np.round(yvalues, decimals=0)
+        yvalues = np.unique(yvalues)
+
+        n_values = len(yvalues)
+
+        # unique distances in property space
+        for i in range(n_values):
+            for j in range(i+1, n_values):
+                dist = abs(yvalues[i]-yvalues[j])
+                xdata.append(yvalues[i])
+                xdata.append(yvalues[j])
+                ydata.append(dist)
+                ydata.append(dist)
+
+
+
+    xdata = np.array(xdata)
+    ydata = np.array(ydata)
+
+    #filter zoom
+    idx, = np.where(xdata < 1000)
+    xdata = xdata[idx]
+    ydata = ydata[idx]
+    idx, = np.where(ydata < 300)
+    xdata = xdata[idx]
+    ydata = ydata[idx]
+
+
+    # views.histogram_2d_with_kde(xdata, ydata, filename=filename+"_errorVsXvalue")
+
+    # Hack to make MPL hide the overlap of hexacons
+    lineswidth=0.0 # white lines
+    lineswidth=0.2 # perfect fit
+    lineswidth=0.3 # fit for pngs
+    lineswidth=0.4 # fit for pngs
+
+    colormap = 'Greys'
+    colormap = 'PuRd'
+    hex_density = 25
+    hexbinpar = {
+        'gridsize': hex_density,
+        'cmap': colormap,
+        'linewidths': lineswidth,
+        'mincnt': 2,
+        'bins': 'log',
+    }
+
+    hb = ax.hexbin(xdata, ydata, **hexbinpar)
+
+    # ax.scatter(xdata, ydata)
+
+    # ax.set_ylim((0, 250))
+    # ax.set_xlim((0, 1000))
+
+    fig.savefig(filename + "_errorVsXvalue")
+    fig.clf()
+
+    return
+
+def view_std_values(data, filename):
 
     # std of zero is not interesting
     # idx, = np.where(yvalstd > 1.0)
     # yvalstd = yvalstd[idx]
 
     # sane filter
-    idx, = np.where(yvalstd < 500)
-    yvalstd = yvalstd[idx]
+    idx, = np.where(data < 500)
+    data = data[idx]
 
     # HACKED
-    n_points = yvalstd.shape[0]
+    n_points = data.shape[0]
     yvalstd_copy = np.zeros(2*n_points)
-    yvalstd_copy[:n_points] = yvalstd
-    yvalstd_copy[n_points:] = -yvalstd
+    yvalstd_copy[:n_points] = data
+    yvalstd_copy[n_points:] = -data
     # mu, std = norm.fit(yvalstd_copy)
 
 
@@ -166,7 +315,7 @@ def view_std_values(yvalstd, filename):
 
     # Trunc-norm fit
     mu = 0.0
-    std = stats.truncnorm.fit(yvalstd, 2.0, 150.0, floc=0, scale=1.0)
+    std = stats.truncnorm.fit(data, 3.0, 200.0, floc=0, scale=1.0)
     std = std[-1]
     std = np.sqrt(std)/np.sqrt(2)
 
@@ -176,20 +325,20 @@ def view_std_values(yvalstd, filename):
 
     ax = axs
 
-    min_val = np.min(yvalstd)
-    max_val = np.max(yvalstd)
+    min_val = np.min(data)
+    max_val = np.max(data)
 
     if False:
         bins = np.linspace(min_val, max_val, 300)
-        gaussian_kernel = gaussian_kde(yvalstd)
+        gaussian_kernel = gaussian_kde(data)
         values = gaussian_kernel(bins)
         ax.plot(bins, values, "k", linewidth=1.0)
 
     else:
 
-        n, bins, patches = ax.hist(yvalstd, bins=30, histtype='stepfilled', color="k", density=False)
+        n, bins, patches = ax.hist(data, bins=30, histtype='stepfilled', color="k", density=False)
 
-        hist, bins = np.histogram(yvalstd, density=True, bins=30)
+        hist, bins = np.histogram(data, density=True, bins=30)
         # figqq = sm.qqplot(yvalstd, norm, fit=True, line='45')
         # figqq.savefig(filename + "_qq")
         # bincentres = [(bins[i]+bins[i+1])/2. for i in range(len(bins)-1)]
@@ -215,8 +364,8 @@ def view_std_values(yvalstd, filename):
     right_inset_ax = fig.add_axes([.4, .4, .4, .4])
 
     max_val = bins[0] + bins[1]-bins[0]
-    idx, = np.where(yvalstd > max_val)
-    zoom_yval = yvalstd[idx]
+    idx, = np.where(data > max_val)
+    zoom_yval = data[idx]
 
     idx, = np.where(zoom_yval < 250)
     zoom_yval = zoom_yval[idx]
@@ -283,26 +432,38 @@ def main():
     args = parser.parse_args()
 
     if args.dict:
-        xvalues, yvalues, yvaln, yvalstd, yvaldist = split_dict(args.dict, misc.load_obj)
+        # xvalues, yvalues, yvaln, yvalstd, yvaldist, yvaldist_flat = split_dict(args.dict, misc.load_obj)
+        xvalues, yvalues_list = get_xy(args.dict, misc.load_obj)
         filename = args.dict
 
     if args.json:
-        xvalues, yvalues = split_dict(args.json, misc.load_obj)
+        # xvalues, yvalues = split_dict(args.json, misc.load_obj)
+        xvalues, yvalues_list = get_xy(args.json, misc.load_json)
         filename = args.json
 
+
+    # count and stuff
+    yvalues_median = get_medians(yvalues_list, keyword=filename)
+
     # 2d histogram
-    view_values_molecules(xvalues, yvalues, filename)
+    view_values_molecules(xvalues, yvalues_median, filename)
 
-    if yvaln.shape[0] == 0:
-        return
-
-    print("no. unique distances", len(yvaldist))
-
-    idx, = np.where(yvaln >= 2)
-    print("no. of values>2", len(idx))
+    # if yvaln.shape[0] == 0:
+    #     return
+    #
+    # print("no. unique distances", len(yvaldist_flat))
+    #
+    # idx, = np.where(yvaln >= 2)
+    # print("no. of values>2", len(idx))
     # yvalstd = yvalstd[idx]
 
-    view_std_values(yvaldist, filename)
+    yvalues_distances = get_distances(yvalues_list, keyword=filename)
+    idx, = np.where(yvalues_distances > 3)
+    yvalues_distances = yvalues_distances[idx]
+    view_std_values(yvalues_distances, filename)
+
+    # dist vs x
+    view_dist_vs_x(yvalues_list, None, filename)
 
     return
 
