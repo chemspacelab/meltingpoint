@@ -165,10 +165,13 @@ ochem_bp_set_rep:
 	rm ${OCHEMBP}/slatm.mbtypes
 	${PY} ${BIN}/prepare_representations.py -j 24 \
 		--sdf ${OCHEMBP}/structures.sdf.gz \
-		--scratch ${OCHEMBP}
+		--scratch ${OCHEMBP} \
+		--representations "rdkitfp" "morgan"
 
 ochem_bp_set_kernel:
-	${PY} ${BIN}/training.py --get-kernels --scratch ${OCHEMBP}
+	${PY} ${BIN}/prepare_kernels.py \
+		--scratch ${OCHEMBP} \
+		--representations "rdkitfp" "morgan"
 
 ochem_bp_set_score:
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${OCHEMBP}

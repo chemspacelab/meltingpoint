@@ -162,16 +162,20 @@ def get_representations_bob(atoms, structures, max_atoms=23, asize=None, **kwarg
 
 def molobjs_to_morgans(molobjs, procs=0):
 
-    fps = fingerprints.molobjs_to_fingerprints(molobjs,
+    print("Generate morgan-fingerprints")
+
+    fps = fingerprints.molobjs_to_fps(molobjs,
         procs=procs,
         fingerfunc=fingerprints.get_morgan)
 
     return fps
 
 
-def molobjs_to_fingerprints(molobjs, procs=0):
+def molobjs_to_rdkitfps(molobjs, procs=0):
 
-    fps = fingerprints.molobjs_to_fingerprints(molobjs,
+    print("Generate rdkit-fingerprints")
+
+    fps = fingerprints.molobjs_to_fps(molobjs,
         procs=procs,
         fingerfunc=fingerprints.get_rdkit)
 
@@ -189,6 +193,20 @@ def molobjs_to_xyzs(molobjs):
         mol_coord.append(coord)
 
     return mol_atoms, mol_coord
+
+
+def molobjs_to_representations(molobjs, name, **kwargs):
+
+    if name == "rdkitfp":
+        reprs = molobjs_to_rdkitfps(molobjs)
+
+    elif name == "morgan":
+        reprs = molobjs_to_morgans(molobjs)
+
+    else:
+        quit("error representation unknown:", name)
+
+    return reprs
 
 
 def xyzs_to_representations(mol_atoms, mol_coord, name="cm", **kwargs):
@@ -330,61 +348,99 @@ def main():
     parser.add_argument('--sdf', action='store', help='', metavar="file")
     parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0, type=int)
 
+    parser.add_argument('-r', '--representations', action='store', help='', metavar="STR", nargs="+")
+
     args = parser.parse_args()
 
     if args.scratch[-1] != "/":
         args.scratch += "/"
 
-    if not args.conformers:
-        molobjs = cheminfo.read_sdffile(args.sdf)
-        molobjs = [mol for mol in molobjs]
-        # molobjs = molobjs[:10]
+    representation_names_coordbased = ["cm", "fchl18", "fchl19", "slatm", "bob"]
+    representation_names_molbased = ["morgan", "rdkitfp"]
 
+    if args.representations is None:
         # representation_names = ["cm", "fchl18", "fchl19", "slatm", "bob"]
         # representation_names = ["fchl18"]
         # representation_names = ["bob"]
-        representation_names = ["slatm", "bob", "cm"]
+        representation_names = ["slatm", "bob", "cm", "rdkitfp", "morgan"]
+    else:
+        representation_names = args.representations
 
-        xyzs = molobjs_to_xyzs(molobjs)
+    molobjs = cheminfo.read_sdffile(args.sdf)
+    molobjs = [mol for mol in molobjs]
 
-        mol_atoms, mol_coords = xyzs
-        misc.save_obj(args.scratch + "atoms", mol_atoms)
+    xyzs = molobjs_to_xyzs(molobjs)
 
-        # Print unique atoms
-        unique_atoms = []
-        for atoms in mol_atoms:
-            unique_atoms += list(np.unique(atoms))
+    mol_atoms, mol_coords = xyzs
+    misc.save_obj(args.scratch + "atoms", mol_atoms)
 
-        unique_atoms = np.array(unique_atoms)
-        unique_atoms = unique_atoms.flatten()
-        unique_atoms = np.unique(unique_atoms)
+    # Print unique atoms
+    unique_atoms = []
+    for atoms in mol_atoms:
+        unique_atoms += list(np.unique(atoms))
 
-        # Calculate max_size
-        max_atoms = [len(atoms) for atoms in mol_atoms]
-        max_atoms = max(max_atoms)
+    unique_atoms = np.array(unique_atoms)
+    unique_atoms = unique_atoms.flatten()
+    unique_atoms = np.unique(unique_atoms)
 
-        print("total mols:", len(mol_coords))
-        print("atom types:", unique_atoms)
-        print("max atoms: ", max_atoms)
+    # Calculate max_size
+    max_atoms = [len(atoms) for atoms in mol_atoms]
+    max_atoms = max(max_atoms)
 
-        quit()
+    print("total mols:", len(mol_coords))
+    print("atom types:", unique_atoms)
+    print("max atoms: ", max_atoms)
+    print()
+    print("representations:", representation_names)
+    print()
 
-        # Gas phase
-        for name in representation_names:
-            representations = xyzs_to_representations(*xyzs, name=name, scr=args.scratch, max_atoms=max_atoms, procs=args.procs)
-            print(representations.shape)
+
+    # Gas phase
+    for name in representation_names:
+
+        if name not in representation_names_coordbased: continue
+
+        representations = xyzs_to_representations(
+            mol_atoms,
+            mol_coords,
+            name=name,
+            scr=args.scratch,
+            max_atoms=max_atoms,
+            procs=args.procs)
+
+        if isinstance(representations, (np.ndarray, np.generic) ):
             misc.save_npy(args.scratch + "repr." + name, representations)
-            del representations
+        else:
+            misc.save_obj(args.scratch + "repr." + name, representations)
 
-        # # fingerprints
-        print("Generate fingerprints")
-        fingerprints = molobjs_to_fingerprints(molobjs)
-        misc.save_obj(args.scratch + "repr." + "fp", fingerprints)
+        representations = None
+        del representations
 
+    for name in representation_names:
+
+        if name not in representation_names_molbased: continue
+
+        representations = molobjs_to_representations(
+            molobjs,
+            name=name,
+            scr=args.scratch,
+            max_atoms=max_atoms,
+            procs=args.procs)
+
+        if isinstance(representations, (np.ndarray, np.generic) ):
+            misc.save_npy(args.scratch + "repr." + name, representations)
+        else:
+            misc.save_obj(args.scratch + "repr." + name, representations)
+
+        representations = None
+        del representations
+
+
+    quit()
 
     # Ensemble
-    if args.conformers:
-        generate_conformer_representation(scr=args.scratch, procs=args.procs)
+    # if args.conformers:
+    #     generate_conformer_representation(scr=args.scratch, procs=args.procs)
 
     return
 
