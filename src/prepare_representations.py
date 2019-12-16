@@ -11,6 +11,7 @@ from functools import partial
 from multiprocessing import Process, Pool
 import multiprocessing.managers
 
+import fingerprints
 
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -159,15 +160,20 @@ def get_representations_bob(atoms, structures, max_atoms=23, asize=None, **kwarg
     return replist
 
 
+def molobjs_to_morgans(molobjs, procs=0):
+
+    fps = fingerprints.molobjs_to_fingerprints(molobjs,
+        procs=procs,
+        fingerfunc=fingerprints.get_morgan)
+
+    return fps
+
+
 def molobjs_to_fingerprints(molobjs, procs=0):
 
-    # TODO do this in parallel
-
-    fps = []
-
-    for molobj in molobjs:
-        fp1 = Chem.RDKFingerprint(molobj)
-        fps.append(fp1)
+    fps = fingerprints.molobjs_to_fingerprints(molobjs,
+        procs=procs,
+        fingerfunc=fingerprints.get_rdkit)
 
     return fps
 

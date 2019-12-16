@@ -1,6 +1,5 @@
 """
 
-
 List of Available Fingerprints in rdkit:
 Fingerprint Type    Notes   Language
 RDKit   a Daylight-like fingerprint based on hashing molecular subgraphs    C++
@@ -10,21 +9,25 @@ MACCS keys  Using the 166 public keys implemented as SMARTS C++
 Morgan/Circular Fingerprints based on the Morgan algorithm, similar to the ECFP/FCFP fingerprints JCIM 50:742-54 (2010).    C++
 2D Pharmacophore    Uses topological distances between pharmacophoric points.   C++
 Pattern a topological fingerprint optimized for substructure screening  C++
-Extended Reduced Graphs Derived from the ErG fingerprint published by Stiefl et al. in JCIM 46:208–20 (2006). NOTE: these functions return an array of floats, not the usual fingerprint types
+Extended Reduced Graphs Derived from the ErG fingerprint published by Stiefl et al. in JCIM 46:208–20 (2006).
+NOTE: these functions return an array of floats, not the usual fingerprint types
 
 
+The Tanimoto coefficent is determined by looking at the number of chemical
+features that are common to both molecules (the intersection of the data
+strings) compared to the number of chemical features that are in either (the
+union of the data strings). The Dice coefficient also compares these values but
+using a slightly different weighting. 
 
-
-
-The Tanimoto coefficent is determined by looking at the number of chemical features that are common to both molecules (the intersection of the data strings) compared to the number of chemical features that are in either (the union of the data strings). The Dice coefficient also compares these values but using a slightly different weighting. 
-
-The Tanimoto coefficient is the ratio of the number of features common to both molecules to the total number of features, i.e.
+The Tanimoto coefficient is the ratio of the number of features common to both
+molecules to the total number of features, i.e.
 
 ( A intersect B ) / ( A + B - ( A intersect B ) ) 
 
 The range is 0 to 1 inclusive. 
 
-The Dice coefficient is the number of features in common to both molecules relative to the average size of the total number of features present, i.e.
+The Dice coefficient is the number of features in common to both molecules
+relative to the average size of the total number of features present, i.e.
 
 ( A intersect B ) / 0.5 ( A + B ) 
 
@@ -44,11 +47,15 @@ import rdkit.Chem as Chem
 
 from chemhelp import cheminfo
 
-
 class MyManager(multiprocessing.managers.BaseManager):
     pass
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
+def tanimoto_similarity(a, b):
+    return rdkit.DataStructs.FingerprintSimilarity(a,b)
+
+def dice_similarity(a, b):
+    return rdkit.DataStructs.DiceSimilarity(a,b)
 
 def procs_similarity(args, similarity=rdkit.DataStructs.FingerprintSimilarity, kernel=None, symmetric=True):
 
@@ -193,19 +200,17 @@ def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkit, **kwargs):
     return results
 
 
-
-
 def main():
 
-    smiles_list = ['c1ccccn1', 'c1ccco1']*10
-    molobjs = [cheminfo.smiles_to_molobj(smiles)[0] for smiles in smiles_list]
+    # smiles_list = ['c1ccccn1', 'c1ccco1']*10
+    # molobjs = [cheminfo.smiles_to_molobj(smiles)[0] for smiles in smiles_list]
 
     molobjs = cheminfo.read_sdffile("_tmp_bing_bp_/structures.sdf.gz")
     molobjs = list(molobjs)
     molobjs = molobjs[:500]
 
     fingerprints = molobjs_to_fps(molobjs, procs=2)
-    kernel = fingerprints_to_kernel(fingerprints, fingerprints, procs=2)
+    kernel = fingerprints_to_kernel(fingerprints, fingerprints, procs=2, similarity=dice_similarity)
 
     print(kernel)
 
