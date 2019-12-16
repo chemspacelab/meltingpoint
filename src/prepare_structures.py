@@ -285,7 +285,7 @@ def set_structures(datadict, scratch, procs=0):
 
         prtstr = np.round(values, decimals=1)
 
-        print("save {:4.1f}".format(mean), "-", prtstr)
+        print("save {:4.2f}".format(mean), "-", prtstr)
 
         sdfstr = cheminfo.molobj_to_sdfstr(molobj)
         sdfstr += "$$$$\n"
@@ -293,7 +293,7 @@ def set_structures(datadict, scratch, procs=0):
 
         valuesstr = " ".join([str(x) for x in values])
         # propstr = "{:} {:}\n".format(mean, standard_deviation)
-        propstr = f"{i} " + valuestr
+        propstr = f"{i} " + valuesstr + "\n"
         fprop.write(propstr)
 
     fsdf.close()

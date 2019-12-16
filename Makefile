@@ -228,7 +228,7 @@ merge_bp_set_xyz:
 		--scratch ${MERGEBP}
 
 merge_mp_set_xyz:
-	${PY} prepare_structures.py -j 24 \
+	${PY} ${BIN}/prepare_structures.py -j 24 \
 		--datadict ${MERGEMP}/molecule_data \
 		--scratch ${MERGEMP}
 
