@@ -294,6 +294,7 @@ def generate_conformer_representation(scr="_tmp_ensemble_/", procs=0):
 
         results = m.np_zeros((n_total, rep_size))
 
+        # TODO Hardcoded, puuuha
         pool = Pool(32)
 
         kwargs["array"] = results
