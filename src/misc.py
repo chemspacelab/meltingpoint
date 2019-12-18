@@ -107,7 +107,7 @@ def stdin():
         yield line
 
 
-def parallel(lines, func, args, kwargs, procs=1):
+def parallel(lines, func, args, kwargs, procs=1, maxsize=None):
     """
 
     NOTE:
@@ -133,10 +133,13 @@ def parallel(lines, func, args, kwargs, procs=1):
 
     """
 
+    if maxsize is None:
+        maxsize=procs
+
     # Start a queue with the size of processes for jobs and a result queue to
     # collect results
     q_res = mp.Queue()
-    q_job = mp.Queue(maxsize=procs)
+    q_job = mp.Queue(maxsize=maxsize)
 
     # print lock
     iolock = mp.Lock()
@@ -150,7 +153,6 @@ def parallel(lines, func, args, kwargs, procs=1):
 
     # stream the data to queue
     for line in lines:
-
         n_in += 1
 
         # halts if queue is full
@@ -206,7 +208,8 @@ def process(q, results, iolock, func, args, kwargs):
 
         result = func(line, *args, **kwargs)
 
-        print("jimmy", result)
+        if result is None:
+            continue
 
         results.put(result)
 
