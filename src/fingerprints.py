@@ -127,6 +127,8 @@ def fingerprints_to_kernel(fps1, fps2, procs=0, similarity=rdkit.DataStructs.Fin
                 workpackage = (i,j), (aval,bval)
                 yield workpackage
 
+    #
+    print("allocate kernel")
     kernel = np.zeros((n1_items, n2_items))
 
     if procs == 0:
@@ -181,6 +183,8 @@ def fingerprints_to_kernel(fps1, fps2, procs=0, similarity=rdkit.DataStructs.Fin
 
         for i, values in results:
             kernel[i,:] = values[:]
+
+            # TODO if symmetric
 
         # kernel = np.array(results)
 

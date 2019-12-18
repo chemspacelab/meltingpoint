@@ -220,12 +220,28 @@ def dump_kernel_scores(scr):
     misc.save_npy(scr + "n_train", n_trains)
 
     # Load properties
-    properties = misc.load_npy(scr + "properties")
+    try:
+        properties = misc.load_npy(scr + "properties")
+    except:
+        with open(scr + "properties.csv", 'r') as f:
+            lines = f.readlines()
+            properties = []
+            for line in lines:
+
+                values = [float(x) for x in line.split()]
+                value = np.median(values)
+                properties.append(value)
+
+            properties = np.array(properties)
+            misc.save_npy(scr + "properties", properties)
 
 
     # TODO Load done kernel
-    names = ["fp"]
+    names = ["rdkitfp", "morgan"]
     for name in names:
+
+        # TODO Time it
+
         kernel = misc.load_npy(scr + "kernel." + name)
 
         n_len = kernel.shape[0]
@@ -263,6 +279,7 @@ def dump_kernel_scores(scr):
         print(name, scores)
 
 
+    quit()
 
     # Load multi kernels (reg search)
     names = ["fchl19", "fchl18"]
