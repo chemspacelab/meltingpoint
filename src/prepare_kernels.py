@@ -119,19 +119,15 @@ def dump_distances_and_kernels(scr, name, procs=0):
         dist = None
         del dist
 
-    elif name == "rdkitfp":
+    elif name == "rdkitfp" or name == "morgan":
 
         print("Generating fingerprint kernel", name)
-        representations_fp = misc.load_obj(scr + "repr." + name)
-        kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs)
+        representations_fp = misc.load_npy(scr + "repr." + name)
+        representations_fp = np.asarray(representations_fp, dtype=np.float)
+        kernel = fingerprints.bitmap_jaccard_kernel(representations_fp)
         misc.save_npy(scr + "kernel." + name, kernel)
 
-    elif name == "morgan":
-
-        print("Generating fingerprint kernel", name)
-        representations_fp = misc.load_obj(scr + "repr." + name)
-        kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs, similarity=fingerprints.dice_similarity)
-        misc.save_npy(scr + "kernel." + name, kernel)
+        # kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs)
 
     else:
         print("error: unknown representation", name)

@@ -178,7 +178,7 @@ def molobjs_to_rdkitfps(molobjs, procs=0, bits=True):
 
     fps = fingerprints.molobjs_to_fps(molobjs,
         procs=procs,
-        fingerfunc=fingerprints.get_rdkit,
+        fingerfunc=fingerprints.get_rdkitfp,
         bits=bits)
 
     return fps

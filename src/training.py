@@ -46,6 +46,9 @@ def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     properties_train = properties[idxs_train]
     properties_test = properties[idxs_test]
 
+    print(kernel_train)
+    quit()
+
     alpha = qml.math.cho_solve(kernel_train, properties_train, l2reg=l2reg)
 
     predictions = np.dot(kernel_test, alpha)
@@ -229,6 +232,7 @@ def dump_kernel_scores(scr):
             for line in lines:
 
                 values = [float(x) for x in line.split()]
+                values = values[1:]
                 value = np.median(values)
                 properties.append(value)
 

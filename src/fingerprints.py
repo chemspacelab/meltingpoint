@@ -49,6 +49,7 @@ import rdkit.Chem.AllChem as AllChem
 import misc
 from chemhelp import cheminfo
 
+import numba
 
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -284,7 +285,6 @@ def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkitfp, bits=True, **kwargs
 
     return results
 
-
 def fp_to_bitmap(fp, dtype=np.uint):
 
     bit_size = fp.GetNumBits()
@@ -329,10 +329,16 @@ def dice_coefficient(vec1, vec2):
     return s
 
 
+@numba.njit(parallel=True)
 def bitmap_jaccard_kernel(vectors):
 
+    shape = vectors.shape
+
     lengths = np.sum(vectors, axis=1)
-    lengths = lengths[np.newaxis, :]
+    shape = lengths.shape[0]
+    lengths = lengths.reshape((shape, 1))
+
+    # lengths = lengths[np.newaxis, :]
     kernel = np.dot(vectors, vectors.T)
     kernel = kernel / lengths + lengths.T - kernel
 
