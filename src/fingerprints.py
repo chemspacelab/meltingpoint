@@ -329,18 +329,15 @@ def dice_coefficient(vec1, vec2):
     return s
 
 
-@numba.njit(parallel=True)
+# @numba.njit(parallel=True)
 def bitmap_jaccard_kernel(vectors):
-
-    shape = vectors.shape
 
     lengths = np.sum(vectors, axis=1)
     shape = lengths.shape[0]
     lengths = lengths.reshape((shape, 1))
 
-    # lengths = lengths[np.newaxis, :]
     kernel = np.dot(vectors, vectors.T)
-    kernel = kernel / lengths + lengths.T - kernel
+    kernel = kernel / (lengths + lengths.T - kernel)
 
     return kernel
 
