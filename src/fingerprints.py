@@ -281,11 +281,11 @@ def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkitfp, bits=True, **kwargs
         pool.join()
 
     if bits:
-        results = np.array(results, dtype=np.uint)
+        results = np.array(results, dtype=np.float)
 
     return results
 
-def fp_to_bitmap(fp, dtype=np.uint):
+def fp_to_bitmap(fp, dtype=np.float):
 
     bit_size = fp.GetNumBits()
     bit_str = fp.ToBitString()
