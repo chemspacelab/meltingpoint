@@ -177,6 +177,7 @@ def main():
 
     if args.procs == -1:
         args.procs = os.cpu_count()
+        print("starting", args.procs, "procs")
 
     # fsdf = gzip.open(args.scratch + "structures.sdf.gz", 'w')
     # fprop = open(args.scratch + "properties.csv", 'w')

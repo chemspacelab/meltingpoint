@@ -163,13 +163,14 @@ ochem_bp_set_xyz:
 ochem_bp_set_rep:
 	touch ${OCHEMBP}/slatm.mbtypes
 	rm ${OCHEMBP}/slatm.mbtypes
-	${PY} ${BIN}/prepare_representations.py -j 24 \
+	${PY} ${BIN}/prepare_representations.py -j -1 \
 		--sdf ${OCHEMBP}/structures.sdf.gz \
 		--scratch ${OCHEMBP} \
 		--representations "rdkitfp" "morgan"
 
 ochem_bp_set_kernel:
 	${PY} ${BIN}/prepare_kernels.py \
+		-j 24 \
 		--scratch ${OCHEMBP} \
 		--representations "rdkitfp" "morgan"
 
@@ -222,14 +223,47 @@ merge_overview:
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
 
-
 merge_bp_set_xyz:
 	${PY} ${BIN}/prepare_structures.py -j 24 \
 		--datadict ${MERGEBP}/molecule_data \
 		--scratch ${MERGEBP}
 
+merge_mp_set_xyz:
+	${PY} ${BIN}/prepare_structures.py -j 24 \
+		--datadict ${MERGEMP}/molecule_data \
+		--scratch ${MERGEMP}
+
+merge_bp_set_rep:
+	touch ${MERGEBP}/slatm.mbtypes
+	rm ${MERGEBP}/slatm.mbtypes
+	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+		--sdf ${MERGEBP}/structures.sdf.gz \
+		--scratch ${MERGEBP} \
+		--representations "rdkitfp" "morgan"
+
+merge_mp_set_rep:
+	touch ${MERGEMP}/slatm.mbtypes
+	rm ${MERGEMP}/slatm.mbtypes
+	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+		--sdf ${MERGEMP}/structures.sdf.gz \
+		--scratch ${MERGEMP} \
+		--representations "rdkitfp" "morgan"
 
 
+merge_bp_set_kernel:
+	time ${PY} ${BIN}/prepare_kernels.py \
+		-j -1 \
+		--scratch ${MERGEBP} \
+		--representations "rdkitfp" "morgan"
+
+merge_mp_set_kernel:
+	time ${PY} ${BIN}/prepare_kernels.py \
+		-j -1 \
+		--scratch ${MERGEMP} \
+		--representations "rdkitfp" "morgan"
+
+merge_bp_set_scores:
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEBP}
 
 
 ## PRINT RESULTS

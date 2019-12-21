@@ -35,7 +35,7 @@ The weighting factor comes from the 0.5 in the denominator. The range is 0 to 1.
 
 
 """
-
+import itertools
 import multiprocessing.managers
 import os
 from functools import partial
@@ -46,6 +46,7 @@ import rdkit
 import rdkit.Chem as Chem
 import rdkit.Chem.AllChem as AllChem
 
+import misc
 from chemhelp import cheminfo
 
 
@@ -62,13 +63,42 @@ def dice_similarity(a, b):
     return rdkit.DataStructs.DiceSimilarity(a,b)
 
 
-def procs_similarity(args, similarity=rdkit.DataStructs.FingerprintSimilarity, kernel=None, symmetric=True):
+def procs_similarity_index(args,
+    arraya=None,
+    arrayb=None,
+    similarity=rdkit.DataStructs.FingerprintSimilarity,
+    kernel=None,
+    dim=None,
+    symmetric=True,
+    **kwargs):
+
+    i = args
+    # i = args[0]
+    # j = args[1]
+
+    values = np.zeros(dim)
+
+    for j in range(dim):
+        value = similarity(arraya[i], arrayb[j])
+        values[j] = value
+        # value = 5
+        # kernel[i,j] = value
+
+    # if i != j and symmetric:
+    #     kernel[j,i] = value
+
+    return i, values
+
+
+def procs_similarity(args, similarity=rdkit.DataStructs.FingerprintSimilarity, kernel=None, symmetric=True, **kwargs):
 
     idx = list(args[0])
     i, j = idx
     reps = args[1]
 
     value = similarity(*reps)
+
+    # print(i,j,value)
 
     if kernel is not None:
 
@@ -101,9 +131,12 @@ def fingerprints_to_kernel(fps1, fps2, procs=0, similarity=rdkit.DataStructs.Fin
                 workpackage = (i,j), (aval,bval)
                 yield workpackage
 
+    #
+    print("allocate kernel")
+    kernel = np.zeros((n1_items, n2_items))
+
     if procs == 0:
 
-        kernel = np.zeros((n1_items, n2_items))
         for idx, reps in server(fps1, fps2):
             value = similarity(*reps)
             kernel[idx] = value
@@ -116,17 +149,49 @@ def fingerprints_to_kernel(fps1, fps2, procs=0, similarity=rdkit.DataStructs.Fin
         m = MyManager()
         m.start()
         # NOTE call this with [i,j] and NOT [i][j]
-        results = m.np_zeros((n1_items, n2_items))
+
+        # print("allocating kernel", n1_items, n2_items)
+        # results = m.np_zeros((n1_items, n2_items))
+        # print("done allocating")
+        #
+        # results[0,0] = 600
 
         kwargs = {}
-        kwargs["kernel"] = results
+        # kwargs["kernel"] = results
         kwargs["similarity"] = similarity
         kwargs["symmetric"] = symmetric
-        func = partial(procs_similarity, **kwargs)
-        pool = Pool(procs)
-        pool.map(func, server(fps1, fps2))
+        kwargs["arraya"] = fps1
+        kwargs["arrayb"] = fps2
+        kwargs["dim"] = n2_items
+        func = partial(procs_similarity_index, **kwargs)
 
-        kernel = np.array(results)
+        # lines = server(fps1, fps2)
+        # lines = list(lines)
+
+        idxa = np.arange(n1_items ,dtype=int)
+        idxb = np.arange(n2_items ,dtype=int)
+
+        # lines = itertools.product(idxa, idxb)
+        # lines = list(lines)
+
+        print("starting pool", procs)
+        # results = misc.parallel(lines, func, [], {}, procs=procs, maxsize=2*procs)
+        # results = list(results)
+        # print("done pool")
+
+        pool = Pool(procs)
+        print("pooling kernel")
+        results = pool.map(func, idxa)
+        pool.close()
+        pool.join()
+
+        for i, values in results:
+            kernel[i,:] = values[:]
+
+            # TODO if symmetric
+
+        # kernel = np.array(results)
+
 
     return kernel
 
@@ -212,6 +277,7 @@ def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkitfp, bits=True, **kwargs
         pool = Pool(processes=procs)
         funcname = partial(fingerfunc, **kwargs)
         results = pool.map(funcname, workargs)
+        pool.join()
 
     if bits:
         results = np.array(results, dtype=np.uint)

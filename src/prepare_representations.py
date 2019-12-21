@@ -357,6 +357,11 @@ def main():
     if args.scratch[-1] != "/":
         args.scratch += "/"
 
+    if args.procs == -1:
+        args.procs = int(os.cpu_count())
+        print("set procs", args.procs)
+
+
     representation_names_coordbased = ["cm", "fchl18", "fchl19", "slatm", "bob"]
     representation_names_molbased = ["morgan", "rdkitfp"]
 

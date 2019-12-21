@@ -78,9 +78,7 @@ def dump_distances_and_kernels(scr, name, procs=0):
     representation_names_molbased = ["morgan", "rdkitfp"]
 
     if procs != 0:
-        os.environ["OMP_NUM_THREADS"] = procs
-
-    print(name)
+        os.environ["OMP_NUM_THREADS"] = str(procs)
 
     # Prepare fchl kernels
     if name == "fclh18":
@@ -113,7 +111,7 @@ def dump_distances_and_kernels(scr, name, procs=0):
 
     elif name in representation_names_coordbased:
         print("Distance", name)
-        representations = misc.load_npy(scr + "repr." + name, procs=procs)
+        representations = misc.load_npy(scr + "repr." + name)
         print(representations.shape)
         dist = generate_l2_distances(representations)
         misc.save_npy(scr + "dist." + name, dist)
@@ -121,12 +119,18 @@ def dump_distances_and_kernels(scr, name, procs=0):
         dist = None
         del dist
 
-
-    elif name in representation_names_molbased:
+    elif name == "rdkitfp":
 
         print("Generating fingerprint kernel", name)
         representations_fp = misc.load_obj(scr + "repr." + name)
-        kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp)
+        kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs)
+        misc.save_npy(scr + "kernel." + name, kernel)
+
+    elif name == "morgan":
+
+        print("Generating fingerprint kernel", name)
+        representations_fp = misc.load_obj(scr + "repr." + name)
+        kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs, similarity=fingerprints.dice_similarity)
         misc.save_npy(scr + "kernel." + name, kernel)
 
     else:
@@ -141,7 +145,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--scratch', action='store', help='', metavar="dir", default="_tmp_")
-    parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0)
+    parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0, type=int)
     parser.add_argument('--get-kernels', action='store_true', help='')
 
     parser.add_argument('-r', '--representations', action='store', help='', metavar="STR", nargs="+")
@@ -150,6 +154,10 @@ def main():
 
     if args.scratch[-1] != "/":
         args.scratch += "/"
+
+    if args.procs == -1:
+        args.procs = int(os.cpu_count())
+        print("set procs", args.procs)
 
     representation_names_coordbased = ["cm", "fchl18", "fchl19", "slatm", "bob"]
     representation_names_molbased = ["morgan", "rdkitfp"]
@@ -160,6 +168,7 @@ def main():
         representation_names = args.representations
 
     for name in representation_names:
+        print("goto", name)
         dump_distances_and_kernels(args.scratch, name, procs=args.procs)
 
     return

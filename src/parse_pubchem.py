@@ -14,6 +14,17 @@ ALLOWED_ATOMS = [
 ]
 
 
+def is_mol_allowed(atoms, allowed_atoms=ALLOWED_ATOMS):
+
+    atoms = np.unique(atoms)
+
+    for atom in atoms:
+        if atom not in ALLOWED_ATOMS:
+            return False
+
+    return True
+
+
 def main():
 
     import argparse
@@ -32,17 +43,33 @@ def main():
     keys = data.keys()
     keys = list(keys)
 
+    canonical_data = {}
+
     for key in keys:
 
         molobj, status = cheminfo.smiles_to_molobj(key)
 
         if molobj is None:
-            print("delete", key)
-            del data[key]
+            print("error none mol:", key)
+            continue
+
+        smiles = cheminfo.molobj_to_smiles(molobj, remove_hs=True)
+
+        if "." in smiles:
+            print("error multi mol:", smiles)
+            continue
+
+        atoms = cheminfo.molobj_to_atoms(molobj)
+
+        if not is_mol_allowed(atoms):
+            print("error heavy mol:", smiles)
+            continue
+
+        canonical_data[smiles] = data[key]
 
 
-    misc.save_json(args.scratch + "molecule_data", data)
-    misc.save_obj(args.scratch + "molecule_data", data)
+    misc.save_json(args.scratch + "molecule_data", canonical_data)
+    misc.save_obj(args.scratch + "molecule_data", canonical_data)
 
     return
 
