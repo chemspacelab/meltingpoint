@@ -44,18 +44,23 @@ from multiprocessing import Pool, Process
 import numpy as np
 import rdkit
 import rdkit.Chem as Chem
+import rdkit.Chem.AllChem as AllChem
 
 from chemhelp import cheminfo
+
 
 class MyManager(multiprocessing.managers.BaseManager):
     pass
 MyManager.register('np_zeros', np.zeros, multiprocessing.managers.ArrayProxy)
 
+
 def tanimoto_similarity(a, b):
     return rdkit.DataStructs.FingerprintSimilarity(a,b)
 
+
 def dice_similarity(a, b):
     return rdkit.DataStructs.DiceSimilarity(a,b)
+
 
 def procs_similarity(args, similarity=rdkit.DataStructs.FingerprintSimilarity, kernel=None, symmetric=True):
 
@@ -126,7 +131,7 @@ def fingerprints_to_kernel(fps1, fps2, procs=0, similarity=rdkit.DataStructs.Fin
     return kernel
 
 
-def get_morgan(molobj, radius=2, **kwargs):
+def get_morgan(molobj, radius=2, bitsize=3*1024, bits=True, **kwargs):
     """
 
     This family of fingerprints, better known as circular fingerprints [5], is
@@ -141,8 +146,6 @@ def get_morgan(molobj, radius=2, **kwargs):
     Definitions Used in the Morgan Fingerprints. At times this can lead to
     quite different similarity scores:
 
-
-
     Feature Definitions Used in the Morgan Fingerprints
     These are adapted from the definitions in Gobbi, A. & Poppinger, D.
     “Genetic optimization of combinatorial libraries.” Biotechnology and
@@ -154,8 +157,6 @@ def get_morgan(molobj, radius=2, **kwargs):
     Aromatic    [a]
     Halogen [F,Cl,Br,I]
     Basic   [#7;+,$([N;H2&+0][$([C,a]);!$([C,a](=O))]),$([N;H1&+0]([$([C,a]);!$([C,a](=O))])[$([C,a]);!$([C,a](=O))]),$([N;H0&+0]([C;!$(C(=O))])([C;!$(C(=O))])[C;!$(C(=O))])]
-    Acidic  [$([C,S](=[O,S,P])-[O;H1,-1])]
-
 
     >>> m1 = Chem.MolFromSmiles('c1ccccn1')
     >>> m2 = Chem.MolFromSmiles('c1ccco1')
@@ -169,19 +170,34 @@ def get_morgan(molobj, radius=2, **kwargs):
     0.90...
     """
 
-    fp = Chem.rdMolDescriptors.GetMorganFingerprint(molobj, radius)
+    # TODO useBondTypes=False
+    # TODO useFeatures=True
+
+    if bits:
+        fp = AllChem.GetMorganFingerprintAsBitVect(molobj,2,
+            nBits=1024*5,
+            useFeatures=True)
+        fp = fp_to_bitmap(fp)
+
+    else:
+        fp = Chem.rdMolDescriptors.GetMorganFingerprint(molobj, radius)
 
     return fp
 
 
-def get_rdkit(molobj, **kwargs):
+def get_rdkitfp(molobj, bits=True, **kwargs):
 
     fp1 = Chem.RDKFingerprint(molobj)
+
+    if bits:
+        fp1 = fp_to_bitmap(fp1)
 
     return fp1
 
 
-def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkit, **kwargs):
+def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkitfp, bits=True, **kwargs):
+
+    kwargs["bits"] = True
 
     results = []
 
@@ -197,24 +213,175 @@ def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkit, **kwargs):
         funcname = partial(fingerfunc, **kwargs)
         results = pool.map(funcname, workargs)
 
+    if bits:
+        results = np.array(results, dtype=np.uint)
+
     return results
 
+
+def fp_to_bitmap(fp, dtype=np.uint):
+
+    bit_size = fp.GetNumBits()
+    bit_str = fp.ToBitString()
+    # bit_size = fp.GetLength()
+    # bit_bin = fp.ToBinary()
+
+    bitmap = np.zeros(bit_size, dtype=dtype)
+
+    for i, char in enumerate(bit_str):
+        bitmap[i] = int(char)
+
+    return bitmap
+
+
+def jaccard_index(bm1, bm2):
+
+    dot = np.dot(bm1,bm2)
+    length1 = np.sum(bm1)
+    length2 = np.sum(bm2)
+    length3 = np.dot(bm1, bm1)
+
+    if dot == 0:
+        return 0.0
+
+    s = float(dot) / (length1 + length2 - dot)
+
+    return s
+
+
+def dice_coefficient(vec1, vec2):
+
+    dot = np.dot(vec1,vec2)
+
+    if dot == 0:
+        return 0.0
+
+    length1 = np.sum(vec1)
+    length2 = np.sum(vec2)
+    s = 2.0*dot / (length1+length2)
+
+    return s
+
+
+def bitmap_jaccard_kernel(vectors):
+
+    lengths = np.sum(vectors, axis=1)
+    lengths = lengths[np.newaxis, :]
+    kernel = np.dot(vectors, vectors.T)
+    kernel = kernel / lengths + lengths.T - kernel
+
+    return kernel
+
+
+def test_kernel():
+
+    smiles = ['c1ccccn1']
+    smiles += ['c1ccco1']
+    smiles += ['Oc1ccccc1']
+    smiles += ['Nc1ccccc1']
+    smiles += ['CCO']
+    smiles += ['CCN']
+    molobjs = [cheminfo.smiles_to_molobj(x)[0] for x in smiles]
+
+
+    molobjs = cheminfo.read_sdffile("_tmp_bing_bp_/structures.sdf.gz")
+    molobjs = [next(molobjs) for _ in range(500)]
+
+    fps = molobjs_to_fps(molobjs)
+    vectors = np.zeros((len(molobjs), 2048), dtype=np.uint)
+
+    for i, fp in enumerate(fps):
+        bm = fp_to_bitmap(fp)
+        vectors[i,:] = bm
+
+    kernel = bitmap_jaccard_kernel(vectors)
+
+    print(kernel)
+
+    return
+
+
+def test_dot():
+
+    smiles = "Oc1ccccc1"
+    molobj, status = cheminfo.smiles_to_molobj(smiles)
+    fp1 = get_rdkitfp(molobj)
+    bm = fp_to_bitmap(fp1)
+
+    print(list(bm))
+
+    # hello = np.array([0, 1, 0,0,0,0,0,0,0,0,0,1])
+    # res = np.dot(hello, hello)
+
+    bm = np.array(bm, dtype=int)
+
+    s = np.sum(bm)
+    other = np.dot(bm,bm)
+
+    print(s, other)
+
+    return
 
 def main():
 
     # smiles_list = ['c1ccccn1', 'c1ccco1']*10
     # molobjs = [cheminfo.smiles_to_molobj(smiles)[0] for smiles in smiles_list]
 
-    molobjs = cheminfo.read_sdffile("_tmp_bing_bp_/structures.sdf.gz")
-    molobjs = list(molobjs)
-    molobjs = molobjs[:500]
+    smiles1 = 'c1ccccn1'
+    smiles2 = 'c1ccco1'
+    smiles1 = 'Oc1ccccc1'
+    smiles2 = 'Nc1ccccc1'
+    # smiles1 = 'CCO'
+    # smiles2 = 'CCN'
+    molobj1, status = cheminfo.smiles_to_molobj(smiles1)
+    molobj2, status = cheminfo.smiles_to_molobj(smiles2)
 
-    fingerprints = molobjs_to_fps(molobjs, procs=2)
-    kernel = fingerprints_to_kernel(fingerprints, fingerprints, procs=2, similarity=dice_similarity)
+    fp1 = get_rdkitfp(molobj1)
+    fp2 = get_rdkitfp(molobj2)
+    bm1 = fp_to_bitmap(fp1)
+    bm2 = fp_to_bitmap(fp2)
 
-    print(kernel)
+    print(bm1)
+
+    print()
+
+    sim = rdkit.DataStructs.FingerprintSimilarity(fp1,fp2)
+    print(sim)
+
+    sim = jaccard_index(bm1, bm2)
+    print(sim)
+
+    sim = dice_coefficient(bm1, bm2)
+    print(sim)
+
+    print()
+
+
+    fp1 = AllChem.GetMorganFingerprintAsBitVect(molobj1,2,nBits=1024*5,useFeatures=True)
+    fp2 = AllChem.GetMorganFingerprintAsBitVect(molobj2,2,nBits=1024*5,useFeatures=True)
+    bm1 = fp_to_bitmap(fp1)
+    bm2 = fp_to_bitmap(fp2)
+
+    sim = jaccard_index(bm1, bm2)
+    print(sim)
+    sim = rdkit.DataStructs.FingerprintSimilarity(fp1,fp2)
+    print(sim)
+
+    fp1 = get_morgan(molobj1)
+    fp2 = get_morgan(molobj2)
+    sim = AllChem.DataStructs.DiceSimilarity(fp1,fp2)
+    print(sim)
+
+
+    # molobjs = cheminfo.read_sdffile("_tmp_bing_bp_/structures.sdf.gz")
+    # molobjs = [next(molobjs) for _ in range(20)]
+    #
+    # fingerprints = molobjs_to_fps(molobjs, procs=2)
+    # kernel = fingerprints_to_kernel(fingerprints, fingerprints, procs=2, similarity=dice_similarity)
+    #
+    # print(kernel)
 
     return
 
 if __name__ == '__main__':
-    main()
+    test_kernel()

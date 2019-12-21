@@ -160,24 +160,26 @@ def get_representations_bob(atoms, structures, max_atoms=23, asize=None, **kwarg
     return replist
 
 
-def molobjs_to_morgans(molobjs, procs=0):
+def molobjs_to_morgans(molobjs, procs=0, bits=True):
 
     print("Generate morgan-fingerprints")
 
     fps = fingerprints.molobjs_to_fps(molobjs,
         procs=procs,
-        fingerfunc=fingerprints.get_morgan)
+        fingerfunc=fingerprints.get_morgan,
+        bits=bits)
 
     return fps
 
 
-def molobjs_to_rdkitfps(molobjs, procs=0):
+def molobjs_to_rdkitfps(molobjs, procs=0, bits=True):
 
     print("Generate rdkit-fingerprints")
 
     fps = fingerprints.molobjs_to_fps(molobjs,
         procs=procs,
-        fingerfunc=fingerprints.get_rdkit)
+        fingerfunc=fingerprints.get_rdkit,
+        bits=bits)
 
     return fps
 
