@@ -221,7 +221,7 @@ merge_mp:
 
 merge_overview:
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
-	${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
+	# ${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
 
 merge_bp_set_xyz:
 	${PY} ${BIN}/prepare_structures.py -j 24 \

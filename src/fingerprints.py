@@ -355,16 +355,15 @@ def test_kernel():
     smiles += ['CCN']
     molobjs = [cheminfo.smiles_to_molobj(x)[0] for x in smiles]
 
-
     molobjs = cheminfo.read_sdffile("_tmp_bing_bp_/structures.sdf.gz")
-    molobjs = [next(molobjs) for _ in range(500)]
+    molobjs = [next(molobjs) for _ in range(50)]
 
-    fps = molobjs_to_fps(molobjs)
-    vectors = np.zeros((len(molobjs), 2048), dtype=np.uint)
-
-    for i, fp in enumerate(fps):
-        bm = fp_to_bitmap(fp)
-        vectors[i,:] = bm
+    vectors = molobjs_to_fps(molobjs)
+    # vectors = np.zeros((len(molobjs), 2048), dtype=np.uint)
+    #
+    # for i, fp in enumerate(fps):
+    #     bm = fp_to_bitmap(fp)
+    #     vectors[i,:] = bm
 
     kernel = bitmap_jaccard_kernel(vectors)
 

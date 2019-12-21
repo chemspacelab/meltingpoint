@@ -445,6 +445,8 @@ def main():
     # count and stuff
     yvalues_median = get_medians(yvalues_list, keyword=filename)
 
+    print("max", np.max(yvalues_median))
+
     # 2d histogram
     view_values_molecules(xvalues, yvalues_median, filename)
 
