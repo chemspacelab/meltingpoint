@@ -248,6 +248,9 @@ def dump_kernel_scores(scr):
 
         kernel = misc.load_npy(scr + "kernel." + name)
 
+        print(kernel[0:2,0:2])
+        quit()
+
         n_len = kernel.shape[0]
         diaidx = np.diag_indices(n_len)
 
