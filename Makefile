@@ -25,6 +25,11 @@ qml-build:
 qml: qml-build
 	ln -s qml-build/lib.linux-x86_64-3.6/qml ${BIN}/qml
 
+FFLAGS=-xHost -O3
+#-qopenmp
+fbitmap:
+	cd ${BIN}; f2py -c --verbose --opt="${FFLAGS}" --compiler=intelem --fcompiler=intelem -m bitmap_kernels fbitmap.f90
+
 chemhelp:
 	git clone https://github.com/charnley/chemhelp ${BIN}/chemhelp
 

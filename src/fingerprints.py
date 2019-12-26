@@ -35,6 +35,7 @@ The weighting factor comes from the 0.5 in the denominator. The range is 0 to 1.
 
 
 """
+import time
 import itertools
 import multiprocessing.managers
 import os
@@ -50,6 +51,7 @@ import misc
 from chemhelp import cheminfo
 
 import numba
+import bitmap_kernels
 
 class MyManager(multiprocessing.managers.BaseManager):
     pass
@@ -333,6 +335,7 @@ def dice_coefficient(vec1, vec2):
 def bitmap_jaccard_kernel(vectors):
 
     lengths = np.sum(vectors, axis=1)
+
     shape = lengths.shape[0]
     lengths = lengths.reshape((shape, 1))
 
@@ -353,17 +356,27 @@ def test_kernel():
     molobjs = [cheminfo.smiles_to_molobj(x)[0] for x in smiles]
 
     molobjs = cheminfo.read_sdffile("_tmp_bing_bp_/structures.sdf.gz")
-    molobjs = [next(molobjs) for _ in range(50)]
+    molobjs = [next(molobjs) for _ in range(5000)]
 
+    init = time.time()
     vectors = molobjs_to_fps(molobjs)
-    # vectors = np.zeros((len(molobjs), 2048), dtype=np.uint)
-    #
-    # for i, fp in enumerate(fps):
-    #     bm = fp_to_bitmap(fp)
-    #     vectors[i,:] = bm
 
+    print("init", time.time()-init)
+
+    time_pykernel = time.time()
     kernel = bitmap_jaccard_kernel(vectors)
+    print("pykernel", time.time()- time_pykernel)
+    print(kernel)
 
+    del kernel
+
+    n_items = vectors.shape[0]
+    # kernel = np.zeros((n_items, n_items))
+
+    # help(bitmap_kernels)
+    time_fkernel = time.time()
+    kernel = bitmap_kernels.symmetric_jaccard_kernel(n_items, vectors)
+    print("fokernel", time.time()-time_fkernel)
     print(kernel)
 
     return
