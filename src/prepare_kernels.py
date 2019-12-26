@@ -124,7 +124,9 @@ def dump_distances_and_kernels(scr, name, procs=0):
         print("Generating fingerprint kernel", name)
         representations_fp = misc.load_npy(scr + "repr." + name)
         representations_fp = np.asarray(representations_fp, dtype=np.float)
+        print("jaccard numpy")
         kernel = fingerprints.bitmap_jaccard_kernel(representations_fp)
+        print("saving kernel")
         misc.save_npy(scr + "kernel." + name, kernel)
 
         # kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs)

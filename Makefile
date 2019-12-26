@@ -248,7 +248,7 @@ merge_bp_set_rep:
 merge_mp_set_rep:
 	touch ${MERGEMP}/slatm.mbtypes
 	rm ${MERGEMP}/slatm.mbtypes
-	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+	time ${PY} ${BIN}/prepare_representations.py -j -1 \
 		--sdf ${MERGEMP}/structures.sdf.gz \
 		--scratch ${MERGEMP} \
 		--representations "rdkitfp" "morgan"
