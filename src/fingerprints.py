@@ -373,6 +373,9 @@ def test_kernel():
     n_items = vectors.shape[0]
     # kernel = np.zeros((n_items, n_items))
 
+    vectors = vectors.T
+    vectors = np.array(vectors, dtype=int)
+
     # help(bitmap_kernels)
     time_fkernel = time.time()
     kernel = bitmap_kernels.symmetric_jaccard_kernel(n_items, vectors)
