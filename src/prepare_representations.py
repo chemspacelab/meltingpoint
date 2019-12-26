@@ -394,13 +394,16 @@ def main():
     max_atoms = [len(atoms) for atoms in mol_atoms]
     max_atoms = max(max_atoms)
 
-    print("total mols:", len(mol_coords))
+    n_items = len(mol_coords)
+
+    print("total mols:", n_items)
     print("atom types:", unique_atoms)
     print("max atoms: ", max_atoms)
     print()
     print("representations:", representation_names)
     print()
 
+    misc.save_txt(args.scratch + "n_items", n_items)
 
     # Gas phase
     for name in representation_names:

@@ -43,6 +43,28 @@ def load_npy(name):
     npy = np.load(name + ".npy")
     return npy
 
+def save_txt(name, npy):
+
+    if isinstance(npy, int):
+        npy = np.array([npy], dtype=int)
+
+    if isinstance(npy, float):
+        npy = np.array([npy], dtype=float)
+
+    np.savetxt(name + ".txt", npy)
+
+    return
+
+def load_txt(name):
+    npy = np.loadtxt(name + ".txt")
+    shape = npy.shape
+    if len(shape) == 0:
+        npy = float(npy)
+        if npy.is_integer():
+            npy = int(npy)
+
+    return npy
+
 def save_json(name, obj, indent=4):
     with open(name + ".json", 'w') as f:
         json.dump(obj, f, indent=indent)

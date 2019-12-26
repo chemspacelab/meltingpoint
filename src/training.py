@@ -9,9 +9,10 @@ import copy
 import numpy as np
 import misc
 import views
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
-
+import functools
 
 def score_kernels(kernels, properties, idxs_train, idxs_test, l2reg=1e-6):
 
@@ -46,9 +47,6 @@ def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     properties_train = properties[idxs_train]
     properties_test = properties[idxs_test]
 
-    print(kernel_train)
-    quit()
-
     alpha = qml.math.cho_solve(kernel_train, properties_train, l2reg=l2reg)
 
     predictions = np.dot(kernel_test, alpha)
@@ -79,6 +77,7 @@ def learning_curves(kernel, properties, idxs_train, idxs_test,
         if n > n_items and check_len: break
 
         idxs = idxs_train[:n]
+
         score = score_func(kernel, properties, idxs, idxs_test, **kwargs)
         scores.append(score)
 
@@ -87,14 +86,15 @@ def learning_curves(kernel, properties, idxs_train, idxs_test,
 
 def cross_validation(kernels, properties,
     score_func=score_rmse,
-    training_points=None):
+    training_points=None,
+    n_splits=5):
     """
 
     iterate over kernels and select best index for each n_learn
 
     """
 
-    fold_five = sklearn.model_selection.KFold(n_splits=5, random_state=45, shuffle=True)
+    fold_five = sklearn.model_selection.KFold(n_splits=n_splits, random_state=45, shuffle=True)
 
     n_points = len(training_points)
 
@@ -141,74 +141,74 @@ def cross_validation(kernels, properties,
     return winner_idxs, scores
 
 
-def cross_validation_score(kernel, properties, score_func=score_kernel,
-    n_trains=[2**x for x in range(4, 15)],
-    parameters=None,
-    **kwargs):
-    """
+# def cross_validation_score(kernel, properties, score_func=score_kernel,
+#     n_trains=[2**x for x in range(4, 15)],
+#     parameters=None,
+#     **kwargs):
+#     """
+#
+#     """
+#
+#     # fold-it
+#     fold_five = sklearn.model_selection.KFold(n_splits=5, random_state=45, shuffle=True)
+#     n_items = kernel.shape[0]
+#     X = list(range(n_items))
+#
+#     # for hp opt
+#     l2regs = [10**-x for x in range(1,10,2)] + [0.0]
+#
+#     reg_winners = []
+#     reg_scores = []
+#
+#     for l2reg in l2regs:
+#
+#         scores = []
+#
+#         for idxs_train, idxs_test in fold_five.split(X):
+#
+#             learn_score = cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
+#                 l2reg=l2reg,
+#                 n_trains=n_trains,
+#                 **kwargs)
+#             scores.append(learn_score)
+#
+#         scores = np.array(scores)
+#         scores = scores.T
+#
+#         reg_scores.append(scores)
+#
+#         print(scores)
+#         quit()
+#
+#     # for i in len():
+#
+#
+#     quit()
+#
+#     return
 
-    """
 
-    # fold-it
-    fold_five = sklearn.model_selection.KFold(n_splits=5, random_state=45, shuffle=True)
-    n_items = kernel.shape[0]
-    X = list(range(n_items))
-
-    # for hp opt
-    l2regs = [10**-x for x in range(1,10,2)] + [0.0]
-
-    reg_winners = []
-    reg_scores = []
-
-    for l2reg in l2regs:
-
-        scores = []
-
-        for idxs_train, idxs_test in fold_five.split(X):
-
-            learn_score = cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
-                l2reg=l2reg,
-                n_trains=n_trains,
-                **kwargs)
-            scores.append(learn_score)
-
-        scores = np.array(scores)
-        scores = scores.T
-
-        reg_scores.append(scores)
-
-        print(scores)
-        quit()
-
-    # for i in len():
-
-
-    quit()
-
-    return
-
-
-def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
-    n_trains=[2**x for x in range(4, 15)],
-    check_len=True,
-    l2reg=1e-6,
-    **kwargs):
-
-    n_items = len(idxs_train)
-
-    score_parameters = []
-
-    scores = []
-    for n in n_trains:
-
-        if n > n_items and check_len: break
-
-        idxs = idxs_train[:n]
-
-        score = score_kernel(kernel, properties, idxs, idxs_test, l2reg=l2reg, **kwargs)
-        scores.append(score)
-
-    return scores
+# def cross_validated_learning_curve(kernel, properties, idxs_train, idxs_test,
+#     n_trains=[2**x for x in range(4, 15)],
+#     check_len=True,
+#     l2reg=1e-6,
+#     **kwargs):
+#
+#     n_items = len(idxs_train)
+#
+#     score_parameters = []
+#
+#     scores = []
+#     for n in n_trains:
+#
+#         if n > n_items and check_len: break
+#
+#         idxs = idxs_train[:n]
+#
+#         score = score_kernel(kernel, properties, idxs, idxs_test, l2reg=l2reg, **kwargs)
+#         scores.append(score)
+#
+#     return scores
 
 
 def dump_kernel_scores(scr):
@@ -219,7 +219,18 @@ def dump_kernel_scores(scr):
 
     # Define n_training
     # n_trains=[2**x for x in range(4, 12)]
-    n_trains=[2**x for x in range(4, 14)]
+    n_trains=[2**x for x in range(4, 17)]
+    n_trains = np.array(n_trains)
+    n_items = misc.load_txt(scr + "n_items")
+
+    n_train_idx, = np.where(n_trains < n_items*4.0/5.0)
+    n_trains = n_trains[n_train_idx]
+    n_trains = list(n_trains) + [-1]
+
+    print("Assume total items", n_items,
+            "N train", "{:5.1f}".format(np.floor(n_items*4/5)),
+            "N test", "{:5.1f}".format(np.ceil(n_items*1/5)))
+    print("Training:", n_trains)
     misc.save_npy(scr + "n_train", n_trains)
 
     # Load properties
@@ -240,28 +251,32 @@ def dump_kernel_scores(scr):
             misc.save_npy(scr + "properties", properties)
 
 
-    # TODO Load done kernel
+    # Load done kernel
     names = ["rdkitfp", "morgan"]
     for name in names:
 
         # TODO Time it
 
-        kernel = misc.load_npy(scr + "kernel." + name)
+        now = time.time()
 
-        print(kernel[0:2,0:2])
-        quit()
+        print("load kernel", name)
+        kernel = misc.load_npy(scr + "kernel." + name)
 
         n_len = kernel.shape[0]
         diaidx = np.diag_indices(n_len)
 
-        def scan_kernels():
+        def scan_kernels(debug=True):
             kernel[diaidx] += l2regs[0]
             yield kernel
+            # for i in tqdm.tqdm(range(1, n_l2regs), ncols=47, ascii=True, desc=name):
             for i in range(1, n_l2regs):
                 kernel[diaidx] += -l2regs[i-1] +l2regs[i]
                 yield kernel
 
-        idx_winners, scores = cross_validation(scan_kernels(), properties, training_points=n_trains)
+        generator = functools.partial(tqdm, scan_kernels(), ncols=75, ascii=True, desc=name+ " kernels", total=n_l2regs)
+
+        print("scan kernels", name)
+        idx_winners, scores = cross_validation(generator(), properties, training_points=n_trains)
         misc.save_npy(scr + "score."+name, scores)
         scores = np.around(np.mean(scores, axis=1), decimals=2)
 
@@ -276,15 +291,17 @@ def dump_kernel_scores(scr):
                 "reg": l2reg,
             }
 
-            winner_parameters[n] = parameters
+            winner_parameters[str(n)] = parameters
+
+        nower = time.time()
+
+        print("time: {:10.1f}s".format(nower-now))
+        print(name, list(scores))
 
         misc.save_json(scr + "parameters."+name, winner_parameters)
 
         kernel = None
         del kernel
-
-        print(name, scores)
-
 
     quit()
 
