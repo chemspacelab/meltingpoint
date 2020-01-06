@@ -290,6 +290,8 @@ print_score_ochem_bp:
 print_score_ochem_mp:
 	${PY} ${BIN}/plot.py --scratch ${OCHEMMP}
 
+print_score_merge_mp:
+	${PY} ${BIN}/plot.py --scratch ${MERGEMP}
 
 
 ## MISC

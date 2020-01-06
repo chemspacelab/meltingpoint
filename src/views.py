@@ -278,6 +278,33 @@ def histogram_2d_with_kde(xvalues, yvalues,
     return
 
 
+suffixes = {
+    1e-9: 'n',
+    1e-6: 'u',
+    1e-3: 'm',
+    1: '',
+    1e3: 'k',
+    1e6: 'M',
+    1e9: 'G',
+    1e12: 'T',
+    1e15: 'Y',
+}
+
+def formatter_suffix(x, pos):
+
+    fmt = ""
+
+    if x > 1e3:
+        fmt = "{:d}k"
+        x /= 1e3
+        x = np.round(x, decimals=0)
+        x = int(x)
+    else:
+        fmt = "{:d}"
+
+    point = fmt.format(x)
+
+    return point
 
 def formatter_int(x, pos):
     return "%i" % x
@@ -445,7 +472,7 @@ def learning_curve_error(ax, xkeys, ykeys,
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(formatter_int))
     ax.yaxis.set_minor_formatter(ticker.FuncFormatter(formatter_off))
 
-    ax.xaxis.set_major_formatter(ticker.FuncFormatter(formatter_int))
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(formatter_suffix))
     ax.xaxis.set_minor_formatter(ticker.FuncFormatter(formatter_off))
 
 

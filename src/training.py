@@ -39,23 +39,57 @@ def score_kernel(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     return rmse
 
 
-def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
+def get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=0.0,
+    rtn_train=False):
 
     kernel_train = copy.deepcopy(kernel[np.ix_(idxs_train, idxs_train)])
     kernel_test  = copy.deepcopy(kernel[np.ix_(idxs_test, idxs_train)])
 
     properties_train = properties[idxs_train]
-    properties_test = properties[idxs_test]
+    # properties_test = properties[idxs_test]
 
     alpha = qml.math.cho_solve(kernel_train, properties_train, l2reg=l2reg)
 
-    predictions = np.dot(kernel_test, alpha)
+    test_predictions = np.dot(kernel_test, alpha)
+
+    if not rtn_train:
+        return test_predictions
+
+    train_predictions = np.dot(kernel_train, alpha)
+
+    return test_predictions, train_predictions
+
+
+def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
+
+    predictions = get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=l2reg)
+
+    # properties_train = properties[idxs_train]
+    properties_test = properties[idxs_test]
 
     diff = predictions - properties_test
     diff = diff**2
     rmse = np.sqrt(diff.mean())
 
     return rmse
+
+
+def score_rmse_testtrain(kernel, properties, idxs_train, idxs_test, l2reg=0.0):
+
+    predictions_test, predictions_train = get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=l2reg)
+
+    properties_train = properties[idxs_train]
+    properties_test = properties[idxs_test]
+
+    diff = predictions_test - properties_test
+    diff = diff**2
+    rmse_test = np.sqrt(diff.mean())
+
+    diff = predictions_train - properties_train
+    diff = diff**2
+    rmse_train = np.sqrt(diff.mean())
+
+    return rmse_test, rmse_train
 
 
 def learning_curves(kernel, properties, idxs_train, idxs_test,
