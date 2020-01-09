@@ -70,7 +70,7 @@ def extract_features(p, sdf):
             bondkey = 'bond_%s%d' % (''.join(sorted(symbols)), border)
             countkey(fs, bondkey)
                      
-		# Lipinski
+        # Lipinski
         fs['HBaccept'] = rdkit.Chem.Lipinski.NumHAcceptors(mol)
         fs['HBdonate'] = rdkit.Chem.Lipinski.NumHDonors(mol)
         fs['HBnhoh'] = rdkit.Chem.Lipinski.NHOHCount(mol)
@@ -103,35 +103,35 @@ def regression(df, columns, powers, train_idx, test_idx):
     return residuals
     
 def fit_model(table, train_idx, test_idx):
-	# select columns to include
-	columns = []
-	for colname in table.columns:
-		if colname == 'prop':
-			continue
-		nonzero = np.sum(table[colname].values != 0)
-		if nonzero < len(table)/100:
-			continue
-		columns.append(colname)
+    # select columns to include
+    columns = []
+    for colname in table.columns:
+        if colname == 'prop':
+            continue
+        nonzero = np.sum(table[colname].values != 0)
+        if nonzero < len(table)/100:
+            continue
+        columns.append(colname)
 
-	# powers (small, but noticeable improvement)
-	powers = {'volume': 0.25, 'radiusofgyration': -0.5, 'nheavy': 0.8, 'nbonds': 1., 'natoms': 1.25, 'naromatic': 1., 'molwt': -0.5, 'dipole': 0.2, 'atom': 0.85, 'atomenv': 0.85, 'bond': 1., 'convexarea': 0.85, 'convexvolume': 0.85,}
-	
-	# regression
-	residuals = regression(table, columns, powers, train_idx, test_idx)
-	return residuals
+    # powers (small, but noticeable improvement)
+    powers = {'volume': 0.25, 'radiusofgyration': -0.5, 'nheavy': 0.8, 'nbonds': 1., 'natoms': 1.25, 'naromatic': 1., 'molwt': -0.5, 'dipole': 0.2, 'atom': 0.85, 'atomenv': 0.85, 'bond': 1., 'convexarea': 0.85, 'convexvolume': 0.85,}
+    
+    # regression
+    residuals = regression(table, columns, powers, train_idx, test_idx)
+    return residuals
 
 if __name__ == '__main__':
-	basepath = "/mnt/c/Users/guido/workcopies/avl-notebooks/guido/melting/data/phase_transistions/bing_mp/"
+    basepath = "/mnt/c/Users/guido/workcopies/avl-notebooks/guido/melting/data/phase_transistions/bing_mp/"
 
-	table = pd.DataFrame(extract_features(*read_dataset(basepath)))
+    table = pd.DataFrame(extract_features(*read_dataset(basepath)))
 
-	# important: remove NaN values
-	table = table.fillna(0)
+    # important: remove NaN values
+    table = table.fillna(0)
 
-	# optional: selection 
-	table = table.query("prop < 700 & natoms <40 & stddev < 1")
+    # optional: selection 
+    table = table.query("prop < 700 & natoms <40 & stddev < 1")
 
     # poor man's cross validation
     for i in range(5):
-    	table = table.sample(frac=1).reset_index(drop=True)
-		print (np.abs(fit_model(table, list(range(1000)), list(range(1000, len(table))))).mean())
+        table = table.sample(frac=1).reset_index(drop=True)
+        print (np.abs(fit_model(table, list(range(1000)), list(range(1000, len(table))))).mean())
