@@ -293,6 +293,8 @@ print_score_ochem_mp:
 print_score_merge_mp:
 	${PY} ${BIN}/plot.py --scratch ${MERGEMP}
 
+print_score_subset_mp:
+	${PY} ${BIN}/plot.py --scratch ${FILTERMP}
 
 ## MISC
 
