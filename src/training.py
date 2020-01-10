@@ -245,7 +245,7 @@ def cross_validation(kernels, properties,
 #     return scores
 
 
-def dump_kernel_scores(scr):
+def dump_kernel_scores(scr, names=[]):
 
     # Predefined reg
     l2regs = [10**-x for x in range(1, 6, 2)] + [0.0]
@@ -254,12 +254,12 @@ def dump_kernel_scores(scr):
     # Define n_training
     # n_trains=[2**x for x in range(4, 12)]
     n_trains=[2**x for x in range(4, 17)]
-    n_trains = np.array(n_trains)
+    n_trains = np.array(n_trains, dtype=int)
     n_items = misc.load_txt(scr + "n_items")
 
     n_train_idx, = np.where(n_trains < n_items*4.0/5.0)
     n_trains = n_trains[n_train_idx]
-    n_trains = list(n_trains) + [-1]
+    n_trains = list(n_trains) # + [-1]
 
     print("Assume total items", n_items,
             "N train", "{:5.1f}".format(np.floor(n_items*4/5)),
@@ -286,10 +286,13 @@ def dump_kernel_scores(scr):
 
 
     # Load done kernel
-    names = ["rdkitfp", "morgan"]
+    this_names = ["rdkitfp", "morgan"]
     for name in names:
 
-        # TODO Time it
+        if name not in this_names:
+            continue
+
+        print("scoring", name)
 
         now = time.time()
 
@@ -337,10 +340,8 @@ def dump_kernel_scores(scr):
         kernel = None
         del kernel
 
-    quit()
-
     # Load multi kernels (reg search)
-    names = ["fchl19", "fchl18"]
+    this_names = ["fchl19", "fchl18"]
     for name in names:
         break
         kernels = misc.load_npy(scr + "kernels." + name)
@@ -386,7 +387,7 @@ def dump_kernel_scores(scr):
                 "reg": l2reg,
             }
 
-            winner_parameters[n] = parameters
+            winner_parameters[str(n)] = parameters
 
         misc.save_json(scr + "parameters."+name, winner_parameters)
 
@@ -422,6 +423,12 @@ def dump_kernel_scores(scr):
 
     for model in models:
         name = model["name"]
+
+        if name not in names:
+            continue
+
+        print("scoring", name)
+
         parameters = model
 
         n_sigma = len(parameters["sigma"])
@@ -456,7 +463,7 @@ def dump_kernel_scores(scr):
                 "reg": l2reg,
             }
 
-            winner_parameters[n] = this_parameters
+            winner_parameters[str(n)] = parameters
 
         misc.save_json(scr + "parameters."+name, winner_parameters)
 
@@ -641,6 +648,7 @@ def main():
     parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
     parser.add_argument('--get-kernels', action='store_true', help='')
     parser.add_argument('--get-learning-curves', action='store_true', help='')
+    parser.add_argument('--names', nargs="+", help='', default=[])
 
     args = parser.parse_args()
 
@@ -653,7 +661,7 @@ def main():
         dump_distances_and_kernels(args.scratch)
 
     if args.get_learning_curves:
-        dump_kernel_scores(args.scratch)
+        dump_kernel_scores(args.scratch, names=args.names)
 
     return
 
