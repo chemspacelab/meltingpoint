@@ -13,7 +13,11 @@ def plot_errors(scr):
     ax = axes
 
     # n_trains=[2**x for x in range(4, 4+7)]
-    n_trains = misc.load_npy(scr + "n_train")
+    try:
+        n_trains = misc.load_npy(scr + "n_train")
+    except FileNotFoundError:
+        n_trains = misc.load_txt(scr + "n_train")
+
 
     names = ["cm", "bob", "fchl18", "fchl19", "fp", "slatm"]
     names = glob.glob(scr + "score.*")
@@ -34,7 +38,12 @@ def plot_errors(scr):
         mean = scores.mean(axis=1)
         std = scores.std(axis=1)
 
-        line = ax.errorbar(n_trains, mean, std,
+        valid_scores, = np.where(mean < 500)
+        x_mean = n_trains[valid_scores]
+        mean = mean[valid_scores]
+        std = std[valid_scores]
+
+        line = ax.errorbar(x_mean, mean, std,
             fmt='-o',
             # color="k",
             capsize=3,
@@ -58,7 +67,17 @@ def plot_errors(scr):
 
     ykeys = []
 
-    print(y_max)
+    print("y", y_min, y_max)
+
+    diff = y_max- y_min
+    if diff < 50:
+        y_min -= 40
+
+    if y_min < 0.0:
+        y_min = 50
+
+    if y_max > 120:
+        y_max = 120
 
     # ykeys = np.arange(y_min, y_max, 30)
     ykeys = np.geomspace(y_min, y_max, num=5)
@@ -67,6 +86,8 @@ def plot_errors(scr):
 
     # ykeys = [40 +10*x for x in range(0, 12, 2)]
     xkeys = n_trains
+
+    print("x", n_trains)
 
     views.learning_curve_error(ax, xkeys, ykeys,
         x_range=(10, max(n_trains)*1.3),
