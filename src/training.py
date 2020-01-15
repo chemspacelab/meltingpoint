@@ -146,7 +146,12 @@ def cross_validation(kernels, properties,
 
         kernel_score = []
 
-        for idxs_train, idxs_test in fold_five.split(X):
+        for i, (idxs_train, idxs_test) in enumerate(fold_five.split(X)):
+
+            # un-ordered idxs_train
+            np.random.seed(45+i)
+            np.random.shuffle(idxs_train)
+
             training_scores = learning_curves(kernel, properties, idxs_train, idxs_test,
                 score_func=score_rmse,
                 training_points=training_points)
@@ -285,6 +290,9 @@ def dump_kernel_scores(scr, names=[]):
             misc.save_npy(scr + "properties", properties)
 
 
+    print(n_items, "==", len(properties))
+    assert n_items == len(properties)
+
     # Load done kernel
     this_names = ["rdkitfp", "morgan"]
     for name in names:
@@ -399,7 +407,10 @@ def dump_kernel_scores(scr, names=[]):
     parameters = {
         "name": "slatm",
         "sigma": [2**x for x in range(1, 12, 2)],
-        "lambda": l2regs,
+        # "sigma": [2**x for x in np.arange(20, 40, 0.5)],
+        # "lambda": l2regs,
+        # "lambda":  [10.0**-x for x in np.arange(1, 10, 1)]
+        "lambda":  [10.0**-6],
     }
     models.append(parameters)
     parameters = {
@@ -434,6 +445,9 @@ def dump_kernel_scores(scr, names=[]):
         n_sigma = len(parameters["sigma"])
         n_lambda = len(parameters["lambda"])
 
+        print("parameter range")
+        print("sigma", min(parameters["sigma"]), max(parameters["sigma"]))
+
         dist = misc.load_npy(scr + "dist." + name)
         kernels = get_kernels_l2distance(dist, parameters)
 
@@ -456,18 +470,19 @@ def dump_kernel_scores(scr, names=[]):
 
             n = n_trains[ni]
             sigma = parameters["sigma"][i]
-            l2reg = l2regs[j]
+            l2reg = parameters["lambda"][j]
 
             this_parameters = {
-                "sigma": sigma,
-                "reg": l2reg,
+                "sigma": str(sigma),
+                "reg": str(l2reg),
             }
 
-            winner_parameters[str(n)] = parameters
+            winner_parameters[str(n)] = this_parameters
 
-        misc.save_json(scr + "parameters."+name, winner_parameters)
 
         print(name, scores)
+        misc.save_json(scr + "parameters."+name, winner_parameters)
+
 
 
     quit()
@@ -584,7 +599,7 @@ def dump_distances_and_kernels(scr):
         properties = [float(x) for x in properties]
         properties = np.array(properties)
 
-    print(properties.shape)
+    print("properties", properties.shape)
 
     misc.save_npy(scr + "properties", properties)
 

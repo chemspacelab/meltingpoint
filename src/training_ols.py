@@ -213,6 +213,8 @@ def main():
     n_items = len(features)
     X = np.arange(n_items)
 
+    assert len(properties) == n_items
+
     # Train
     n_splits = 5
     n_train = misc.load_npy(args.scratch + "n_train")
@@ -224,7 +226,11 @@ def main():
 
     scores = []
 
-    for idxs_train, idxs_test in fold_five.split(X):
+    for i, (idxs_train, idxs_test) in enumerate(fold_five.split(X)):
+
+        # un-ordered idxs_train
+        np.random.seed(45+i)
+        np.random.shuffle(idxs_train)
 
         learning_curve = []
 
