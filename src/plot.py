@@ -44,15 +44,13 @@ def plot_errors(scr):
         lines.append(line)
         last_points.append(mean[-1])
 
-        max_mean = max(mean)
+        max_mean = max(mean) + max(std)
         if max_mean > y_max:
             y_max = max_mean
 
-        min_mean = min(mean)
+        min_mean = min(mean) - max(std)
         if min_mean < y_min:
             y_min = min_mean
-
-    print(y_min, y_max)
 
     y_min = np.floor(y_min)
     y_min = int(np.floor(y_min / 10.0)) * 10
@@ -60,19 +58,19 @@ def plot_errors(scr):
 
     ykeys = []
 
+    print(y_max)
+
     # ykeys = np.arange(y_min, y_max, 30)
     ykeys = np.geomspace(y_min, y_max, num=5)
 
     ykeys = [int(np.ceil(y) / 5.0) * 5 for y in ykeys]
-
-    print(ykeys)
 
     # ykeys = [40 +10*x for x in range(0, 12, 2)]
     xkeys = n_trains
 
     views.learning_curve_error(ax, xkeys, ykeys,
         x_range=(10, max(n_trains)*1.3),
-        y_range=(y_min*0.9, y_max*1.1))
+        y_range=(y_min*0.95, y_max*1.12))
 
 
     views.legend_colorcoded(ax, lines, names)
@@ -106,7 +104,7 @@ def plot_errors(scr):
     plt.savefig(scr + "learning_curves.png", bbox_inches="tight")
     plt.savefig(scr + "learning_curves.pdf", bbox_inches="tight")
 
-
+    print(scr + "learning_curves.png")
 
     return
 

@@ -40,17 +40,33 @@ def score_kernel(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     return rmse
 
 
-def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=0.0):
+def get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=0.0,
+    rtn_train=False):
 
     kernel_train = copy.deepcopy(kernel[np.ix_(idxs_train, idxs_train)])
     kernel_test  = copy.deepcopy(kernel[np.ix_(idxs_test, idxs_train)])
 
     properties_train = properties[idxs_train]
-    properties_test = properties[idxs_test]
+    # properties_test = properties[idxs_test]
 
     alpha = qml.math.cho_solve(kernel_train, properties_train, l2reg=l2reg)
 
-    predictions = np.dot(kernel_test, alpha)
+    test_predictions = np.dot(kernel_test, alpha)
+
+    if not rtn_train:
+        return test_predictions
+
+    train_predictions = np.dot(kernel_train, alpha)
+
+    return test_predictions, train_predictions
+
+
+def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
+
+    predictions = get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=l2reg)
+
+    # properties_train = properties[idxs_train]
+    properties_test = properties[idxs_test]
 
     diff = predictions - properties_test
     diff = diff**2
@@ -65,6 +81,24 @@ def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=0.0):
     gc.collect()
 
     return rmse
+
+
+def score_rmse_testtrain(kernel, properties, idxs_train, idxs_test, l2reg=0.0):
+
+    predictions_test, predictions_train = get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=l2reg)
+
+    properties_train = properties[idxs_train]
+    properties_test = properties[idxs_test]
+
+    diff = predictions_test - properties_test
+    diff = diff**2
+    rmse_test = np.sqrt(diff.mean())
+
+    diff = predictions_train - properties_train
+    diff = diff**2
+    rmse_train = np.sqrt(diff.mean())
+
+    return rmse_test, rmse_train
 
 
 def learning_curves(kernel, properties, idxs_train, idxs_test,
@@ -121,10 +155,11 @@ def cross_validation(kernels, properties,
 
         kernel_score = []
 
-        for idxs_train, idxs_test in fold_five.split(X):
+        for i, (idxs_train, idxs_test) in enumerate(fold_five.split(X)):
 
-            # TODO JCK HACK
-            idxs_test = idxs_test[-1000:]
+            # un-ordered idxs_train
+            np.random.seed(45+i)
+            np.random.shuffle(idxs_train)
 
             training_scores = learning_curves(kernel, properties, idxs_train, idxs_test,
                 score_func=score_rmse,
@@ -224,7 +259,7 @@ def cross_validation(kernels, properties,
 #     return scores
 
 
-def dump_kernel_scores(scr):
+def dump_kernel_scores(scr, names=[]):
 
     # Predefined reg
     l2regs = [10**-x for x in range(1, 6, 2)] + [0.0]
@@ -233,12 +268,12 @@ def dump_kernel_scores(scr):
     # Define n_training
     # n_trains=[2**x for x in range(4, 12)]
     n_trains=[2**x for x in range(4, 17)]
-    n_trains = np.array(n_trains)
+    n_trains = np.array(n_trains, dtype=int)
     n_items = misc.load_txt(scr + "n_items")
 
     n_train_idx, = np.where(n_trains < n_items*4.0/5.0)
     n_trains = n_trains[n_train_idx]
-    # n_trains = list(n_trains) + [-1]
+    n_trains = list(n_trains) # + [-1]
 
     print("Assume total items", n_items,
             "N train", "{:5.1f}".format(np.floor(n_items*4/5)),
@@ -264,11 +299,17 @@ def dump_kernel_scores(scr):
             misc.save_npy(scr + "properties", properties)
 
 
+    print(n_items, "==", len(properties))
+    assert n_items == len(properties)
+
     # Load done kernel
-    names = ["rdkitfp", "morgan"]
+    this_names = ["rdkitfp", "morgan"]
     for name in names:
 
-        # TODO Time it
+        if name not in this_names:
+            continue
+
+        print("scoring", name)
 
         now = time.time()
 
@@ -318,10 +359,8 @@ def dump_kernel_scores(scr):
         kernel = None
         del kernel
 
-    quit()
-
     # Load multi kernels (reg search)
-    names = ["fchl19", "fchl18"]
+    this_names = ["fchl19", "fchl18"]
     for name in names:
         break
         kernels = misc.load_npy(scr + "kernels." + name)
@@ -367,7 +406,7 @@ def dump_kernel_scores(scr):
                 "reg": l2reg,
             }
 
-            winner_parameters[n] = parameters
+            winner_parameters[str(n)] = parameters
 
         misc.save_json(scr + "parameters."+name, winner_parameters)
 
@@ -379,7 +418,10 @@ def dump_kernel_scores(scr):
     parameters = {
         "name": "slatm",
         "sigma": [2**x for x in range(1, 12, 2)],
-        "lambda": l2regs,
+        # "sigma": [2**x for x in np.arange(20, 40, 0.5)],
+        # "lambda": l2regs,
+        # "lambda":  [10.0**-x for x in np.arange(1, 10, 1)]
+        "lambda":  [10.0**-6],
     }
     models.append(parameters)
     parameters = {
@@ -403,10 +445,19 @@ def dump_kernel_scores(scr):
 
     for model in models:
         name = model["name"]
+
+        if name not in names:
+            continue
+
+        print("scoring", name)
+
         parameters = model
 
         n_sigma = len(parameters["sigma"])
         n_lambda = len(parameters["lambda"])
+
+        print("parameter range")
+        print("sigma", min(parameters["sigma"]), max(parameters["sigma"]))
 
         dist = misc.load_npy(scr + "dist." + name)
         kernels = get_kernels_l2distance(dist, parameters)
@@ -430,18 +481,19 @@ def dump_kernel_scores(scr):
 
             n = n_trains[ni]
             sigma = parameters["sigma"][i]
-            l2reg = l2regs[j]
+            l2reg = parameters["lambda"][j]
 
             this_parameters = {
-                "sigma": sigma,
-                "reg": l2reg,
+                "sigma": str(sigma),
+                "reg": str(l2reg),
             }
 
-            winner_parameters[n] = this_parameters
+            winner_parameters[str(n)] = this_parameters
 
-        misc.save_json(scr + "parameters."+name, winner_parameters)
 
         print(name, scores)
+        misc.save_json(scr + "parameters."+name, winner_parameters)
+
 
 
     quit()
@@ -558,7 +610,7 @@ def dump_distances_and_kernels(scr):
         properties = [float(x) for x in properties]
         properties = np.array(properties)
 
-    print(properties.shape)
+    print("properties", properties.shape)
 
     misc.save_npy(scr + "properties", properties)
 
@@ -622,6 +674,7 @@ def main():
     parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
     parser.add_argument('--get-kernels', action='store_true', help='')
     parser.add_argument('--get-learning-curves', action='store_true', help='')
+    parser.add_argument('--names', nargs="+", help='', default=[])
 
     args = parser.parse_args()
 
@@ -634,7 +687,7 @@ def main():
         dump_distances_and_kernels(args.scratch)
 
     if args.get_learning_curves:
-        dump_kernel_scores(args.scratch)
+        dump_kernel_scores(args.scratch, names=args.names)
 
     return
 

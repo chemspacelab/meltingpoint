@@ -38,7 +38,7 @@ def is_allowed_atoms(atoms, allowed_atoms=ALLOWED_ATOMS):
     atoms = np.unique(atoms)
 
     for atom in atoms:
-        if atom not in ALLOWED_ATOMS:
+        if atom not in allowed_atoms:
             return False
 
     return True

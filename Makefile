@@ -272,6 +272,44 @@ merge_bp_set_scores:
 merge_mp_set_scores:
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEMP}
 
+## Small subset of druglike molecule
+# 1-2 aromatic rings
+FILTERMP=_tmp_filtermp_
+subset_mp_set_xyz:
+	mkdir -p ${FILTERMP}
+	${PY} ${BIN}/parse_filter.py --sdf ${MERGEMP}/structures.sdf.gz --properties ${MERGEMP}/properties.csv --scratch ${FILTERMP}
+
+subset_mp_set_rep:
+	touch ${FILTERMP}/slatm.mbtypes
+	rm ${FILTERMP}/slatm.mbtypes
+	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+		--sdf ${FILTERMP}/structures.sdf.gz \
+		--scratch ${FILTERMP} \
+		--representations "slatm" "rdkitfp"
+	@# time ${PY} ${BIN}/prepare_representations.py -j 24 \
+	@# 	--sdf ${FILTERMP}/structures.sdf.gz \
+	@# 	--scratch ${FILTERMP} \
+	@# 	--representations "rdkitfp"
+
+subset_mp_set_kernel:
+	time ${PY} ${BIN}/prepare_kernels.py \
+		-j -1 \
+		--scratch ${FILTERMP} \
+		--representations "slatm" # "rdkitfp"
+
+subset_mp_set_scores:
+	touch ${FILTERMP}/properties.npy
+	rm ${FILTERMP}/properties.npy
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "rdkitfp"
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "slatm"
+
+subset_mp_ols:
+	rm ${FILTERMP}/repr.ols.npy
+	${PY} ${BIN}/training_ols.py --scratch ${FILTERMP} -j24
+
+subset_mp_null:
+	${PY} ${BIN}/training_null.py --scratch ${FILTERMP} -j24
+
 ## PRINT RESULTS
 
 print_score_bradley_subset:
@@ -292,6 +330,8 @@ print_score_ochem_bp:
 print_score_ochem_mp:
 	${PY} ${BIN}/plot.py --scratch ${OCHEMMP}
 
+print_score_merge_mp:
+	${PY} ${BIN}/plot.py --scratch ${MERGEMP}
 
 
 ## MISC
