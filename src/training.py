@@ -2,6 +2,7 @@
 from qml.kernels.distance import l2_distance
 import qml
 
+import gc
 import time
 import rdkit
 import sklearn
@@ -39,7 +40,7 @@ def score_kernel(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     return rmse
 
 
-def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
+def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=0.0):
 
     kernel_train = copy.deepcopy(kernel[np.ix_(idxs_train, idxs_train)])
     kernel_test  = copy.deepcopy(kernel[np.ix_(idxs_test, idxs_train)])
@@ -54,6 +55,14 @@ def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     diff = predictions - properties_test
     diff = diff**2
     rmse = np.sqrt(diff.mean())
+
+    if np.isnan(rmse):
+        rmse = np.inf
+
+    del kernel_train
+    del kernel_test
+
+    gc.collect()
 
     return rmse
 
@@ -113,6 +122,10 @@ def cross_validation(kernels, properties,
         kernel_score = []
 
         for idxs_train, idxs_test in fold_five.split(X):
+
+            # TODO JCK HACK
+            idxs_test = idxs_test[-1000:]
+
             training_scores = learning_curves(kernel, properties, idxs_train, idxs_test,
                 score_func=score_rmse,
                 training_points=training_points)
@@ -225,12 +238,12 @@ def dump_kernel_scores(scr):
 
     n_train_idx, = np.where(n_trains < n_items*4.0/5.0)
     n_trains = n_trains[n_train_idx]
-    n_trains = list(n_trains) + [-1]
+    # n_trains = list(n_trains) + [-1]
 
     print("Assume total items", n_items,
             "N train", "{:5.1f}".format(np.floor(n_items*4/5)),
             "N test", "{:5.1f}".format(np.ceil(n_items*1/5)))
-    print("Training:", n_trains)
+    print("Training:", list(n_trains))
     misc.save_npy(scr + "n_train", n_trains)
 
     # Load properties
@@ -299,6 +312,8 @@ def dump_kernel_scores(scr):
         print(name, list(scores))
 
         misc.save_json(scr + "parameters."+name, winner_parameters)
+
+        print("saved")
 
         kernel = None
         del kernel

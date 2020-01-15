@@ -11,6 +11,7 @@ import numpy as np
 import misc
 import views
 
+import bitmap_kernels
 import fingerprints
 
 def generate_l2_distances(representations):
@@ -124,12 +125,35 @@ def dump_distances_and_kernels(scr, name, procs=0):
         print("Generating fingerprint kernel", name)
         representations_fp = misc.load_npy(scr + "repr." + name)
         representations_fp = np.asarray(representations_fp, dtype=np.float)
-        print("jaccard numpy")
-        kernel = fingerprints.bitmap_jaccard_kernel(representations_fp)
-        print("saving kernel")
-        misc.save_npy(scr + "kernel." + name, kernel)
+
+        # t = time.time()
+        # print("jaccard numpy")
+        # kernel = fingerprints.bitmap_jaccard_kernel(representations_fp)
+        # print("time", time.time()-t)
+        # print("saving kernel")
+        #
+        # kernel = None
+        # del kernel
+
+        print( os.environ["OMP_NUM_THREADS"])
+
+        n_items = representations_fp.shape[0]
+
+        representations_fp = np.array(representations_fp, dtype=int).T
+
+        t = time.time()
+        print("jaccard fortran")
+        kernel = bitmap_kernels.symmetric_jaccard_kernel(n_items, representations_fp)
+        print("time", time.time()-t)
 
         # kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs)
+
+        misc.save_npy(scr + "kernel." + name, kernel)
+
+        print("saved")
+
+        kernel = None
+        del kernel
 
     else:
         print("error: unknown representation", name)

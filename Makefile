@@ -256,19 +256,21 @@ merge_mp_set_rep:
 
 merge_bp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
-		-j -1 \
+		-j 40 \
 		--scratch ${MERGEBP} \
 		--representations "rdkitfp" "morgan"
 
 merge_mp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
-		-j -1 \
+		-j 40 \
 		--scratch ${MERGEMP} \
-		--representations "rdkitfp" "morgan"
+		--representations "rdkitfp"
 
 merge_bp_set_scores:
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEBP}
 
+merge_mp_set_scores:
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEMP}
 
 ## PRINT RESULTS
 
