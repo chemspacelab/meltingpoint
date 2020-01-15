@@ -303,6 +303,9 @@ merge_bp_set_scores:
 merge_mp_set_scores:
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEMP}
 
+mergefiltermp_set_scores:
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEMPFIL} --names "rdkitfp"
+
 ## Small subset of druglike molecule
 # 1-2 aromatic rings
 FILTERMP=_tmp_filtermp_
