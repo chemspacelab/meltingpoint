@@ -205,6 +205,7 @@ pubchem_overview:
 
 MERGEBP=_tmp_merge_bp_
 MERGEMP=_tmp_merge_mp_
+MERGEMPFIL=_tmp_mergefilter_mp_
 
 merge_bp:
 	mkdir -p ${MERGEBP}
@@ -223,6 +224,16 @@ merge_mp:
 	${PUBCHEMMP}/molecule_data \
 	--scratch ${MERGEMP}
 
+mergefiltermp:
+	mkdir -p ${MERGEMPFIL}
+	${PY} ${BIN}/merge.py --dict \
+	${BINGMP}/molecule_data \
+	${OCHEMMP}/molecule_data \
+	${BRADLEYMP}/molecule_data \
+	${PUBCHEMMP}/molecule_data \
+	--scratch ${MERGEMPFIL} \
+	--filter
+
 merge_overview:
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
 	# ${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
@@ -236,6 +247,11 @@ merge_mp_set_xyz:
 	${PY} ${BIN}/prepare_structures.py -j 24 \
 		--datadict ${MERGEMP}/molecule_data \
 		--scratch ${MERGEMP}
+
+mergefiltermp_set_xyz:
+	${PY} ${BIN}/prepare_structures.py -j 24 \
+		--datadict ${MERGEMPFIL}/molecule_data \
+		--scratch ${MERGEMPFIL}
 
 merge_bp_set_rep:
 	touch ${MERGEBP}/slatm.mbtypes
@@ -253,6 +269,15 @@ merge_mp_set_rep:
 		--scratch ${MERGEMP} \
 		--representations "rdkitfp" "morgan"
 
+mergefiltermp_set_rep:
+	touch ${MERGEMPFIL}/slatm.mbtypes
+	rm ${MERGEMPFIL}/slatm.mbtypes
+	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+		--sdf ${MERGEMPFIL}/structures.sdf.gz \
+		--scratch ${MERGEMPFIL} \
+		--representations "fchl19" #"rdkitfp"
+
+
 
 merge_bp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
@@ -264,6 +289,12 @@ merge_mp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
 		-j 40 \
 		--scratch ${MERGEMP} \
+		--representations "rdkitfp"
+
+mergefiltermp_set_kernel:
+	time ${PY} ${BIN}/prepare_kernels.py \
+		-j -1 \
+		--scratch ${MERGEMPFIL} \
 		--representations "rdkitfp"
 
 merge_bp_set_scores:
