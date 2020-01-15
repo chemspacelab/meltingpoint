@@ -283,7 +283,7 @@ subset_mp_set_rep:
 	time ${PY} ${BIN}/prepare_representations.py -j 24 \
 		--sdf ${FILTERMP}/structures.sdf.gz \
 		--scratch ${FILTERMP} \
-		--representations "slatm"
+		--representations "slatm" "rdkitfp"
 	@# time ${PY} ${BIN}/prepare_representations.py -j 24 \
 	@# 	--sdf ${FILTERMP}/structures.sdf.gz \
 	@# 	--scratch ${FILTERMP} \
@@ -296,12 +296,17 @@ subset_mp_set_kernel:
 		--representations "slatm" # "rdkitfp"
 
 subset_mp_set_scores:
-	#${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP}
+	touch ${FILTERMP}/properties.npy
+	rm ${FILTERMP}/properties.npy
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "rdkitfp"
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "slatm"
 
 subset_mp_ols:
+	rm ${FILTERMP}/repr.ols.npy
 	${PY} ${BIN}/training_ols.py --scratch ${FILTERMP} -j24
 
+subset_mp_null:
+	${PY} ${BIN}/training_null.py --scratch ${FILTERMP} -j24
 
 ## PRINT RESULTS
 
