@@ -156,8 +156,8 @@ ochem_bp_parse:
 		${OCHEMDAT}/boilingpoints_all.sdf.gz
 
 ochem_overview:
-	${PY} ${BIN}/plot_overview.py --dict ${OCHEMMP}/molecule_data
 	${PY} ${BIN}/plot_overview.py --dict ${OCHEMBP}/molecule_data
+	${PY} ${BIN}/plot_overview.py --dict ${OCHEMMP}/molecule_data
 
 ochem_bp_set_xyz:
 	${PY} ${BIN}/prepare_structures.py -j 24 \
@@ -199,7 +199,6 @@ pubchem_bp_parse:
 pubchem_overview:
 	${PY} ${BIN}/plot_overview.py --dict ${PUBCHEMBP}/molecule_data
 	${PY} ${BIN}/plot_overview.py --dict ${PUBCHEMMP}/molecule_data
-
 
 ## MERGE
 
@@ -293,15 +292,21 @@ subset_mp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
 		-j -1 \
 		--scratch ${FILTERMP} \
-		--representations "slatm" # "rdkitfp"
+		--representations "slatm" "rdkitfp"
 
 subset_mp_set_scores:
-	#${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP}
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP}
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "slatm"
 
 subset_mp_ols:
 	${PY} ${BIN}/training_ols.py --scratch ${FILTERMP} -j24
 
+subset_overview:
+	${PY} ${BIN}/plot_overview.py --dict ${FILTERMP}/molecules
+
+subset_view_kernel:
+	${PY} ${BIN}/plot_kernel.py --dist ${FILTERMP}/dist.slatm.npy --scratch ${FILTERMP}
+	${PY} ${BIN}/plot_kernel.py --kernel ${FILTERMP}/kernel.rdkitfp.npy --scratch ${FILTERMP}
 
 ## PRINT RESULTS
 

@@ -122,7 +122,7 @@ def pca_with_properties(kernel, properties, filename):
     fig.colorbar(sc, ax=axs[0])
     im = axs[1].imshow(kernel)
     fig.colorbar(im, ax=axs[1])
-    fig.savefig(filename)
+    fig.savefig(filename + ".png")
 
     return
 

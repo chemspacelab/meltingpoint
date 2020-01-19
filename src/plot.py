@@ -10,6 +10,7 @@ import views
 def plot_errors(scr):
 
     fig, axes = plt.subplots(1, 1, figsize=(8,4))
+    # fig, axes = plt.subplots(1, 1, figsize=(4,4))
     ax = axes
 
     # n_trains=[2**x for x in range(4, 4+7)]
@@ -18,6 +19,7 @@ def plot_errors(scr):
     except FileNotFoundError:
         n_trains = misc.load_txt(scr + "n_train")
 
+    print(n_trains)
 
     names = ["cm", "bob", "fchl18", "fchl19", "fp", "slatm"]
     names = glob.glob(scr + "score.*")
@@ -61,11 +63,15 @@ def plot_errors(scr):
         if min_mean < y_min:
             y_min = min_mean
 
+        print(name, list(mean))
+
     y_min = np.floor(y_min)
     y_min = int(np.floor(y_min / 10.0)) * 10
     y_max = int(np.ceil(y_max) / 10.0) * 10
 
     ykeys = []
+
+    y_min = 40
 
     print("y", y_min, y_max)
 
@@ -80,6 +86,10 @@ def plot_errors(scr):
         y_max = 120
 
     # ykeys = np.arange(y_min, y_max, 30)
+
+    # y_max = 100
+    y_min = 30
+
     ykeys = np.geomspace(y_min, y_max, num=5)
 
     ykeys = [int(np.ceil(y) / 5.0) * 5 for y in ykeys]
