@@ -18,8 +18,6 @@ subroutine symmetric_jaccard_kernel(n_items, vec1, kernel)
     double precision :: dp
     integer, dimension(:), allocatable :: lengths
 
-    write(*,*) "jck", n_items
-
     allocate(lengths(n_items))
 
     !$omp parallel do
@@ -27,8 +25,6 @@ subroutine symmetric_jaccard_kernel(n_items, vec1, kernel)
         lengths(i) = sum(vec1(:,i))
     end do
     !$omp end parallel do
-
-    write(*,*) "jck ping"
 
     !$omp parallel do private(dp) schedule(dynamic)
     do i = 1, n_items

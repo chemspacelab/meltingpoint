@@ -200,10 +200,10 @@ def molobjs_to_xyzs(molobjs):
 def molobjs_to_representations(molobjs, name, **kwargs):
 
     if name == "rdkitfp":
-        reprs = molobjs_to_rdkitfps(molobjs)
+        reprs = molobjs_to_rdkitfps(molobjs, **kwargs)
 
     elif name == "morgan":
-        reprs = molobjs_to_morgans(molobjs)
+        reprs = molobjs_to_morgans(molobjs, **kwargs)
 
     else:
         quit("error representation unknown:", name)
@@ -433,8 +433,6 @@ def main():
         representations = molobjs_to_representations(
             molobjs,
             name=name,
-            scr=args.scratch,
-            max_atoms=max_atoms,
             procs=args.procs)
 
         if isinstance(representations, (np.ndarray, np.generic) ):

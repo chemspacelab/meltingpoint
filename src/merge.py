@@ -16,6 +16,131 @@ import misc
 from chemhelp import cheminfo
 
 
+ALLOWED_ATOMS = [
+    1, 5, 6, 7, 8, 9, 14, 15, 16, 17, 27, 35, 53
+]
+
+def is_allowed_atoms(atoms, allowed_atoms=ALLOWED_ATOMS):
+
+    atoms = np.unique(atoms)
+
+    for atom in atoms:
+        if atom not in allowed_atoms:
+            return False
+
+    return True
+
+
+def filter_value(values):
+
+    kelvin = 273.15
+
+    line = np.array(values)
+    mean = np.mean(line)
+    dev = np.abs(line - mean)
+    dev_max = np.max(dev)
+
+    if dev_max > 10:
+        return False
+
+    if mean > 250+kelvin:
+        return False
+
+    if mean < 50+kelvin:
+        return False
+
+    return True
+
+
+def filter_molobj(molobj):
+
+    # GetRingInfo
+    info = molobj.GetRingInfo()
+    n_rings = info.NumRings()
+
+    # if n_rings == 0:
+    #     return False
+
+    # if n_rings > 2:
+    #     return False
+
+    atoms = cheminfo.molobj_to_atoms(molobj)
+    if not is_allowed_atoms(atoms):
+        return False
+
+    n_atoms = len(atoms)
+    n_heavy_atoms, = np.where(atoms > 1)
+    n_heavy_atoms = len(n_heavy_atoms)
+
+    # # no long chains
+    # aromatic_atoms = molobj.GetAromaticAtoms()
+    # aromatic_atoms = [atom for atom in aromatic_atoms]
+    # aromatic_atoms = [atom.GetAtomicNum() for atom in aromatic_atoms]
+    # n_atomatic_atoms = len(aromatic_atoms)
+    #
+    # n_non_aromatic_atoms = n_heavy_atoms - n_atomatic_atoms 
+    #
+    # if n_non_aromatic_atoms > 7:
+    #     return False
+
+    if n_heavy_atoms < 10:
+        return False
+
+    if n_heavy_atoms > 20:
+        return False
+
+    if n_atoms > 40:
+        return False
+
+    return True
+
+
+def filter_dict(molecules):
+
+    keys = molecules.keys()
+    keys = list(keys)
+
+    max_atoms = 0
+
+    for key in keys:
+
+        molobj, status = cheminfo.smiles_to_molobj(key)
+
+        if molobj is None:
+            continue
+
+        status = filter_molobj(molobj)
+
+
+        if not status:
+            del molecules[key]
+            print(key, status)
+            continue
+
+        status = filter_value(molecules[key])
+
+        if not status:
+            print(status, key, molecules[key])
+            del molecules[key]
+            continue
+
+        # Report
+        atoms = cheminfo.molobj_to_atoms(molobj)
+        n_atoms = len(atoms)
+
+        if n_atoms > max_atoms:
+            max_atoms = n_atoms
+
+        continue
+
+
+    print("max atoms: ", max_atoms)
+
+
+    return molecules
+
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -24,6 +149,7 @@ def main():
     parser.add_argument('--dict', action='store', help='', metavar="FILE", nargs="+", default=[])
     parser.add_argument('--name', action='store', help='', metavar="STR", nargs="+")
     parser.add_argument('--filename', action='store', help='', metavar="STR")
+    parser.add_argument('--filter', action='store_true', help='')
     parser.add_argument('-j', '--procs', action='store', help='pararallize', metavar="int", default=0, type=int)
 
     args = parser.parse_args()
@@ -68,10 +194,12 @@ def main():
 
                 everything[key] += data[key]
 
-        keys = everything.keys()
 
-        print()
-        print(args.scratch, len(keys))
+        if args.filter:
+            everything = filter_dict(everything)
+
+        keys = everything.keys()
+        print("n items", len(keys))
 
         # Save
         misc.save_json(args.scratch + "molecule_data", everything)

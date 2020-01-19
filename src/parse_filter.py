@@ -115,6 +115,8 @@ def main():
     molecules = cheminfo.read_sdffile(args.sdf)
     properties = open(args.properties, 'r')
 
+    moledict = {}
+
     for molobj, line in zip(molecules, properties):
 
         status = molobjfilter(molobj)
@@ -134,13 +136,18 @@ def main():
         sdfstr = cheminfo.molobj_to_sdfstr(molobj)
         sdfstr += "$$$$\n"
         fsdf.write(sdfstr.encode())
-
         fprop.write(line)
+
+        values = [float(x) for x in line.split()[1:]]
+        moledict[smiles] = values
 
     fsdf.close()
     fprop.close()
 
     properties.close()
+
+    misc.save_json(args.scratch + "molecules", moledict)
+    misc.save_obj(args.scratch + "molecules", moledict)
 
     return
 

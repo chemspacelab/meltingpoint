@@ -280,6 +280,7 @@ def molobjs_to_fps(molobjs, procs=0, fingerfunc=get_rdkitfp, bits=True, **kwargs
         pool = Pool(processes=procs)
         funcname = partial(fingerfunc, **kwargs)
         results = pool.map(funcname, workargs)
+        pool.close()
         pool.join()
 
     if bits:
@@ -331,7 +332,7 @@ def dice_coefficient(vec1, vec2):
     return s
 
 
-# @numba.njit(parallel=True)
+@numba.njit(parallel=True)
 def bitmap_jaccard_kernel(vectors):
 
     lengths = np.sum(vectors, axis=1)
@@ -340,7 +341,7 @@ def bitmap_jaccard_kernel(vectors):
     lengths = lengths.reshape((shape, 1))
 
     kernel = np.dot(vectors, vectors.T)
-    kernel = kernel / (lengths + lengths.T - kernel)
+    kernel /= (lengths + lengths.T - kernel)
 
     return kernel
 

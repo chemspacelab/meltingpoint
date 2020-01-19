@@ -204,6 +204,7 @@ pubchem_overview:
 
 MERGEBP=_tmp_merge_bp_
 MERGEMP=_tmp_merge_mp_
+MERGEMPFIL=_tmp_mergefilter_mp_
 
 merge_bp:
 	mkdir -p ${MERGEBP}
@@ -222,6 +223,16 @@ merge_mp:
 	${PUBCHEMMP}/molecule_data \
 	--scratch ${MERGEMP}
 
+mergefiltermp:
+	mkdir -p ${MERGEMPFIL}
+	${PY} ${BIN}/merge.py --dict \
+	${BINGMP}/molecule_data \
+	${OCHEMMP}/molecule_data \
+	${BRADLEYMP}/molecule_data \
+	${PUBCHEMMP}/molecule_data \
+	--scratch ${MERGEMPFIL} \
+	--filter
+
 merge_overview:
 	${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
 	# ${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
@@ -236,6 +247,11 @@ merge_mp_set_xyz:
 		--datadict ${MERGEMP}/molecule_data \
 		--scratch ${MERGEMP}
 
+mergefiltermp_set_xyz:
+	${PY} ${BIN}/prepare_structures.py -j 24 \
+		--datadict ${MERGEMPFIL}/molecule_data \
+		--scratch ${MERGEMPFIL}
+
 merge_bp_set_rep:
 	touch ${MERGEBP}/slatm.mbtypes
 	rm ${MERGEBP}/slatm.mbtypes
@@ -247,27 +263,47 @@ merge_bp_set_rep:
 merge_mp_set_rep:
 	touch ${MERGEMP}/slatm.mbtypes
 	rm ${MERGEMP}/slatm.mbtypes
-	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+	time ${PY} ${BIN}/prepare_representations.py -j -1 \
 		--sdf ${MERGEMP}/structures.sdf.gz \
 		--scratch ${MERGEMP} \
 		--representations "rdkitfp" "morgan"
 
+mergefiltermp_set_rep:
+	touch ${MERGEMPFIL}/slatm.mbtypes
+	rm ${MERGEMPFIL}/slatm.mbtypes
+	time ${PY} ${BIN}/prepare_representations.py -j 24 \
+		--sdf ${MERGEMPFIL}/structures.sdf.gz \
+		--scratch ${MERGEMPFIL} \
+		--representations "fchl19" #"rdkitfp"
+
+
 
 merge_bp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
-		-j -1 \
+		-j 40 \
 		--scratch ${MERGEBP} \
 		--representations "rdkitfp" "morgan"
 
 merge_mp_set_kernel:
 	time ${PY} ${BIN}/prepare_kernels.py \
-		-j -1 \
+		-j 40 \
 		--scratch ${MERGEMP} \
-		--representations "rdkitfp" "morgan"
+		--representations "rdkitfp"
+
+mergefiltermp_set_kernel:
+	time ${PY} ${BIN}/prepare_kernels.py \
+		-j -1 \
+		--scratch ${MERGEMPFIL} \
+		--representations "rdkitfp"
 
 merge_bp_set_scores:
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEBP}
 
+merge_mp_set_scores:
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEMP}
+
+mergefiltermp_set_scores:
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${MERGEMPFIL} --names "rdkitfp"
 
 ## Small subset of druglike molecule
 # 1-2 aromatic rings
@@ -282,7 +318,7 @@ subset_mp_set_rep:
 	time ${PY} ${BIN}/prepare_representations.py -j 24 \
 		--sdf ${FILTERMP}/structures.sdf.gz \
 		--scratch ${FILTERMP} \
-		--representations "slatm"
+		--representations "slatm" "rdkitfp"
 	@# time ${PY} ${BIN}/prepare_representations.py -j 24 \
 	@# 	--sdf ${FILTERMP}/structures.sdf.gz \
 	@# 	--scratch ${FILTERMP} \
@@ -295,10 +331,13 @@ subset_mp_set_kernel:
 		--representations "slatm" "rdkitfp"
 
 subset_mp_set_scores:
-	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP}
+	touch ${FILTERMP}/properties.npy
+	rm ${FILTERMP}/properties.npy
+	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "rdkitfp"
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "slatm"
 
 subset_mp_ols:
+	rm ${FILTERMP}/repr.ols.npy
 	${PY} ${BIN}/training_ols.py --scratch ${FILTERMP} -j24
 
 subset_overview:
@@ -307,6 +346,9 @@ subset_overview:
 subset_view_kernel:
 	${PY} ${BIN}/plot_kernel.py --dist ${FILTERMP}/dist.slatm.npy --scratch ${FILTERMP}
 	${PY} ${BIN}/plot_kernel.py --kernel ${FILTERMP}/kernel.rdkitfp.npy --scratch ${FILTERMP}
+
+subset_mp_null:
+	${PY} ${BIN}/training_null.py --scratch ${FILTERMP} -j24
 
 ## PRINT RESULTS
 
