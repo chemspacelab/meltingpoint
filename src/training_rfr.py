@@ -11,6 +11,40 @@ from sklearn.model_selection import cross_val_score, GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import MinMaxScaler
 
+
+
+def get_best_rfr(X, y):
+
+    # TODO
+    param_grid={
+        'max_depth': range(3,7),
+        'n_estimators': (10, 50, 100, 1000),
+    }
+    gsc = GridSearchCV(
+        estimator=RandomForestRegressor(),
+        param_grid=param_grid,
+        cv=5,
+        scoring='neg_mean_squared_error', verbose=10,
+        n_jobs=2)
+    grid_result = gsc.fit(X, y)
+    best_params = grid_result.best_params_
+    print(best_params)
+
+    quit()
+
+    rfrargs = {
+        "random_state": 0,
+        "n_estimators": 1000,
+        "max_depth": 5,
+        "criterion": "mse",
+    }
+
+    clf = RandomForestRegressor(**rfrargs)
+    clf.fit(X, y)
+
+    return clf
+
+
 def main():
 
     # L. Breiman, "Random Forests", Machine Learning, 45(1), 5-32, 2001.
@@ -48,27 +82,6 @@ def main():
     # load predefined training points
     n_train = misc.load_npy(args.scratch + "n_train")
 
-    # TODO
-    # param_grid={
-    #     'max_depth': range(3,7),
-    #     'n_estimators': (10, 50, 100, 1000),
-    # }
-    # gsc = GridSearchCV(
-    #     estimator=RandomForestRegressor(),
-    #     param_grid=param_grid,
-    #     cv=5,
-    #     scoring='neg_mean_squared_error', verbose=10,
-    #     n_jobs=2)
-    # grid_result = gsc.fit(X, y)
-    # best_params = grid_result.best_params_
-    # print(best_params)
-
-    rfrargs = {
-        "random_state": 0,
-        "n_estimators": 1000,
-        "max_depth": 5,
-        "criterion": "mse",
-    }
 
     # CV
     idxs = np.array(list(range(len(properties))), dtype=int)
@@ -81,8 +94,7 @@ def main():
         for n in n_train:
             idxs = idxs_train[:n]
 
-            clf = RandomForestRegressor(**rfrargs)
-            clf.fit(X[idxs], y[idxs])
+            clf = get_best_rfr(X[idxs], y[idxs])
 
             # training error
             # predictions = clf.predict(X)

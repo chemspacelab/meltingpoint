@@ -217,11 +217,12 @@ merge_bp:
 merge_mp:
 	mkdir -p ${MERGEMP}
 	${PY} ${BIN}/merge.py --dict \
+	${BRADLEYMP}/molecule_data \
 	${BINGMP}/molecule_data \
 	${OCHEMMP}/molecule_data \
-	${BRADLEYMP}/molecule_data \
 	${PUBCHEMMP}/molecule_data \
-	--scratch ${MERGEMP}
+	--scratch ${MERGEMP} \
+	--name "Bradley" "SciFinder" "OCHEM" "PubChem"
 
 mergefiltermp:
 	mkdir -p ${MERGEMPFIL}
@@ -234,8 +235,8 @@ mergefiltermp:
 	--filter
 
 merge_overview:
-	${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
-	# ${PY} ${BIN}/plot_overview.py --dict ${MERGEMP}/molecule_data
+	# ${PY} ${BIN}/plot_overview.py --dict ${MERGEBP}/molecule_data
+	${PY} ${BIN}/plot_overview.py --json ${MERGEMP}/molecule_data
 
 merge_bp_set_xyz:
 	${PY} ${BIN}/prepare_structures.py -j 24 \
@@ -325,16 +326,16 @@ subset_mp_set_rep:
 	@# 	--representations "rdkitfp"
 
 subset_mp_set_kernel:
-	time ${PY} ${BIN}/prepare_kernels.py \
+	${PY} ${BIN}/prepare_kernels.py \
 		-j -1 \
 		--scratch ${FILTERMP} \
-		--representations "slatm" "rdkitfp"
+		--representations "rdkitfp"
 
 subset_mp_set_scores:
 	touch ${FILTERMP}/properties.npy
 	rm ${FILTERMP}/properties.npy
 	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "rdkitfp"
-	${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "slatm"
+	# ${PY} ${BIN}/training.py --get-learning-curves --scratch ${FILTERMP} --names "slatm"
 
 subset_mp_ols:
 	rm ${FILTERMP}/repr.ols.npy
@@ -372,6 +373,9 @@ print_score_ochem_mp:
 
 print_score_merge_mp:
 	${PY} ${BIN}/plot.py --scratch ${MERGEMP}
+
+print_score_mergefilter_mp:
+	${PY} ${BIN}/plot.py --scratch _tmp_mergefilter_mp_
 
 print_score_subset_mp:
 	${PY} ${BIN}/plot.py --scratch ${FILTERMP}
