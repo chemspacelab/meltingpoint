@@ -305,6 +305,8 @@ def dump_kernel_scores(scr, names=[]):
     this_names = ["rdkitfp", "morgan"]
     for name in names:
 
+        break
+
         if name not in this_names:
             continue
 
@@ -414,6 +416,15 @@ def dump_kernel_scores(scr, names=[]):
 
     # Load distance kernels
     models = []
+    parameters = {
+        "name": "rdkitfp",
+        "sigma": [2**x for x in range(1, 12, 2)],
+        # "sigma": [2**x for x in np.arange(20, 40, 0.5)],
+        # "lambda": l2regs,
+        # "lambda":  [10.0**-x for x in np.arange(1, 10, 1)]
+        "lambda":  [10.0**-6],
+    }
+    models.append(parameters)
     parameters = {
         "name": "slatm",
         "sigma": [2**x for x in range(1, 12, 2)],

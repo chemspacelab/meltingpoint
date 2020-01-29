@@ -215,7 +215,7 @@ def main():
         elif n_db == 3:
             venn3(databases_set, set_labels=args.name)
 
-        plt.savefig(args.filename)
+        plt.savefig(args.scratch + "venndiagram")
 
 
     return

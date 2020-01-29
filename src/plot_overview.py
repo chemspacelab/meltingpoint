@@ -99,10 +99,11 @@ def get_medians(data, keyword=None, debug=False):
     return rtndata
 
 
-@misc.memory.cache(ignore=['debug','data'])
+# @misc.memory.cache(ignore=['debug','data'])
 def get_distances(data, keyword=None, decimals=0, debug=False):
 
     rtndata = []
+    maxdist = []
 
     for values in data:
 
@@ -110,19 +111,28 @@ def get_distances(data, keyword=None, decimals=0, debug=False):
         uvalues = np.unique(uvalues)
         n_values = len(uvalues)
 
-        # dists = []
+        dists = []
 
         for i in range(n_values):
             for j in range(i+1, n_values):
                 diff = abs(uvalues[i]-uvalues[j])
-                # dists.append(diff)
+                dists.append(diff)
                 rtndata.append(diff)
+
+
+        if len(dists) > 1:
+            max_this = np.max(dists)
+        else:
+            max_this = 0.0
+
+        maxdist.append(max_this)
 
         # rtndata.append(dists)
 
     rtndata = np.array(rtndata)
+    maxdist = np.array(maxdist)
 
-    return rtndata
+    return rtndata, maxdist
 
 
 @misc.memory.cache
@@ -139,8 +149,9 @@ def get_xy(filename, load_func):
 
     xvalues = []
     yvalues = []
+    zvalues = list(data.keys())
 
-    for key in data.keys():
+    for key in zvalues:
 
         value = data[key]
         value = np.array(value)
@@ -153,8 +164,9 @@ def get_xy(filename, load_func):
 
 
     xvalues = np.array(xvalues)
+    zvalues = np.array(zvalues)
 
-    return xvalues, yvalues
+    return xvalues, yvalues, zvalues
 
 
 @misc.memory.cache
@@ -433,22 +445,24 @@ def main():
 
     if args.dict:
         # xvalues, yvalues, yvaln, yvalstd, yvaldist, yvaldist_flat = split_dict(args.dict, misc.load_obj)
-        xvalues, yvalues_list = get_xy(args.dict, misc.load_obj)
+        xvalues, yvalues_list, strvalues = get_xy(args.dict, misc.load_obj)
         filename = args.dict
 
     if args.json:
         # xvalues, yvalues = split_dict(args.json, misc.load_obj)
-        xvalues, yvalues_list = get_xy(args.json, misc.load_json)
+        xvalues, yvalues_list, strvalues = get_xy(args.json, misc.load_json)
         filename = args.json
 
 
     # count and stuff
     yvalues_median = get_medians(yvalues_list, keyword=filename)
 
+    print("n items", xvalues.shape)
+
     print("max", np.max(yvalues_median))
 
     # 2d histogram
-    view_values_molecules(xvalues, yvalues_median, filename)
+    # view_values_molecules(xvalues, yvalues_median, filename)
 
     # if yvaln.shape[0] == 0:
     #     return
@@ -459,13 +473,23 @@ def main():
     # print("no. of values>2", len(idx))
     # yvalstd = yvalstd[idx]
 
-    yvalues_distances = get_distances(yvalues_list, keyword=filename)
+    yvalues_distances, yvalues_maxs = get_distances(yvalues_list, keyword=filename)
     idx, = np.where(yvalues_distances > 3)
     yvalues_distances = yvalues_distances[idx]
     view_std_values(yvalues_distances, filename)
 
     # dist vs x
     view_dist_vs_x(yvalues_list, None, filename)
+
+
+    # Error mols
+    molidxs, = np.where(np.logical_and(yvalues_maxs > 200, yvalues_maxs < 300))
+    # molidxs, = np.where(yvalues_maxs > 1)
+
+    print(molidxs)
+    print(yvalues_maxs[molidxs])
+    print(strvalues[molidxs])
+
 
     return
 

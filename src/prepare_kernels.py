@@ -139,18 +139,24 @@ def dump_distances_and_kernels(scr, name, procs=0):
 
         n_items = representations_fp.shape[0]
 
-        representations_fp = np.array(representations_fp, dtype=int).T
-
-        t = time.time()
-        print("jaccard fortran")
-        kernel = bitmap_kernels.symmetric_jaccard_kernel(n_items, representations_fp)
-        print("time", time.time()-t)
+        # FORTRAN KERNEL
+        # t = time.time()
+        # print("jaccard fortran")
+        # representations_fp = np.array(representations_fp, dtype=int).T
+        # kernel = bitmap_kernels.symmetric_jaccard_kernel(n_items, representations_fp)
+        # print("time", time.time()-t)
 
         # kernel = fingerprints.fingerprints_to_kernel(representations_fp, representations_fp, procs=procs)
+        # misc.save_npy(scr + "kernel." + name, kernel)
 
-        misc.save_npy(scr + "kernel." + name, kernel)
-
+        # DISTANCE
+        print("make dist")
+        dist = generate_l2_distances(representations_fp)
+        print("save dist")
+        misc.save_npy(scr + "dist." + name, dist)
         print("saved")
+
+        print(dist.shape)
 
         kernel = None
         del kernel

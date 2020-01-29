@@ -40,10 +40,17 @@ def plot_errors(scr):
         mean = scores.mean(axis=1)
         std = scores.std(axis=1)
 
-        valid_scores, = np.where(mean < 500)
-        x_mean = n_trains[valid_scores]
-        mean = mean[valid_scores]
-        std = std[valid_scores]
+
+        if "ols" in name:
+            view, = np.where(n_trains > 250)
+            x_mean = n_trains[view]
+            mean = mean[view]
+            std = std[view]
+        else:
+            valid_scores, = np.where(mean < 200)
+            x_mean = n_trains[valid_scores]
+            mean = mean[valid_scores]
+            std = std[valid_scores]
 
         line = ax.errorbar(x_mean, mean, std,
             fmt='-o',

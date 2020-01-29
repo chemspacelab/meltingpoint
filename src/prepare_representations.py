@@ -41,6 +41,14 @@ def get_representations_slatm(atoms,
 
     """
 
+    # from qml.representations import get_slatm_mbtypes # Assume 'qm7' is a
+    # list of Compound() objects. mbtypes =
+    # get_slatm_mbtypes([mol.nuclear_charges for compound in qm7]) # Assume the
+    # QM7 dataset is loaded into a list of Compound() for compound in qm7: #
+    # Generate the desired representation for each compound
+    # compound.generate_slatm(mbtypes, local=True, rcut=2.7)
+
+
     if mbtypes is None:
 
         filename_mbtypes = scr + "slatm.mbtypes"
