@@ -93,7 +93,7 @@ bing_set_scores_mp:
 BRADLEYMP=_tmp_bradley_all_
 
 bradley_parse_data:
-	${PY} ${BIN}/parse_bradley.py --scratch ${BRAD}
+	${PY} ${BIN}/parse_bradley.py --scratch ${BRADLEYMP}
 
 bradley_overview:
 	${PY} ${BIN}/plot_overview.py --dict data/melting_bradley
