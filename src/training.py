@@ -82,6 +82,24 @@ def score_rmse(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
     return rmse
 
 
+def score_consensus(kernel, properties, idxs_train, idxs_test, l2reg=1e-6):
+
+    predictions = get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=l2reg)
+
+    # properties_train = properties[idxs_train]
+    properties_test = properties[idxs_test]
+    data = np.array([idxs_test, properties_test, predictions])
+
+    diff = predictions - properties_test
+    diff = diff**2
+    rmse = np.sqrt(diff.mean())
+
+    if np.isnan(rmse):
+        rmse = np.inf
+
+    return rmse, data
+
+
 def score_rmse_testtrain(kernel, properties, idxs_train, idxs_test, l2reg=0.0):
 
     predictions_test, predictions_train = get_predictions(kernel, properties, idxs_train, idxs_test, l2reg=l2reg)
@@ -127,9 +145,9 @@ def learning_curves(kernel, properties, idxs_train, idxs_test,
 
 
 def cross_validation(kernels, properties,
-    score_func=score_rmse,
-    training_points=None,
-    n_splits=5):
+                     score_func=score_rmse,
+                     training_points=None,
+                     n_splits=5):
     """
 
     iterate over kernels and select best index for each n_learn
@@ -155,14 +173,13 @@ def cross_validation(kernels, properties,
         kernel_score = []
 
         for i, (idxs_train, idxs_test) in enumerate(fold_five.split(X)):
-
             # un-ordered idxs_train
-            np.random.seed(45+i)
+            np.random.seed(45 + i)
             np.random.shuffle(idxs_train)
 
             training_scores = learning_curves(kernel, properties, idxs_train, idxs_test,
-                score_func=score_rmse,
-                training_points=training_points)
+                                              score_func=score_rmse,
+                                              training_points=training_points)
 
             kernel_score.append(training_scores)
 
@@ -182,7 +199,7 @@ def cross_validation(kernels, properties,
 
     scores = []
     for i, idx in enumerate(winner_idxs):
-        score = kernel_scores[idx][i,:]
+        score = kernel_scores[idx][i, :]
         scores.append(kernel_scores[idx][i])
 
     return winner_idxs, scores
@@ -608,6 +625,104 @@ def training_all():
     return
 
 
+def dump_consensus(scr, n_trains):
+
+    # Define n_training
+    n_trains = np.array(n_trains, dtype=int)
+    n_items = misc.load_txt(scr + "n_items")
+
+    n_train_idx, = np.where(n_trains < n_items * 4.0 / 5.0)
+    n_trains = n_trains[n_train_idx]
+    n_trains = list(n_trains)  # + [-1]
+
+    print("Assume total items", n_items,
+          "N train", "{:5.1f}".format(np.floor(n_trains * 4 / 5)),
+          "N test", "{:5.1f}".format(np.ceil(n_trains * 1 / 5)))
+    print("Training:", list(n_trains))
+    misc.save_npy(scr + "n_train_sub", n_trains)
+
+    # Load properties
+    try:
+        properties = misc.load_npy(scr + "properties")
+    except:
+        with open(scr + "properties.csv", 'r') as f:
+            lines = f.readlines()
+            properties = []
+            for line in lines:
+                values = [float(x) for x in line.split()]
+                values = values[1:]
+                value = np.median(values)
+                properties.append(value)
+
+            properties = np.array(properties)
+            misc.save_npy(scr + "properties", properties)
+
+    print(n_items, "==", len(properties))
+    assert n_items == len(properties)
+
+    # Load distance kernels
+    models = []
+    parameters = {
+        "name": "slatm",
+        "sigma": [512,],
+        "lambda": [1e-6,],
+    }
+    models.append(parameters)
+    parameters = {
+        "name": "cm",
+        "sigma": [512,],
+        "lambda": [0.1,],
+    }
+    models.append(parameters)
+    parameters = {
+        "name": "bob",
+        "sigma": [2048,],
+        "lambda": [0.001,],
+    }
+    models.append(parameters)
+
+    consensus_data = {}
+    for model in models:
+        name = model["name"]
+        consensus_data[name] = {'errors': [],
+                                'scores': []}
+
+        print("scoring", name)
+
+        parameters = model
+
+        dist = misc.load_npy(scr + "dist." + name)
+        kernels = get_kernels_l2distance(dist, parameters)
+
+        # Cross validate
+
+        fold_five = sklearn.model_selection.KFold(n_splits=5, random_state=45, shuffle=True)
+
+        for idxk, kernel in enumerate(kernels):
+            kernel_score = []
+            kernel_data = []
+
+            for i, (idxs_train, idxs_test) in enumerate(fold_five.split(list(range(kernel.shape[0])))):
+                # un-ordered idxs_train
+                np.random.seed(45 + i)
+                np.random.shuffle(idxs_train)
+
+                score, data = score_consensus(kernel, properties, idxs_train, idxs_test)
+                kernel_score.append(score)
+                kernel_data.append(data)
+
+            consensus_data[name]['errors'].append((idxk, kernel_data))
+            consensus_data[name]['scores'].append((idxk, kernel_score))
+
+
+        # Save scores
+        misc.save_json(scr + "consensus." + name, consensus_data)
+
+    quit()
+
+    return
+
+
 def dump_distances_and_kernels(scr):
 
     # TODO Properties should be read by scr!!
@@ -684,6 +799,7 @@ def main():
     parser.add_argument('-j', '--cpu', action='store', help='pararallize', metavar="int", default=0)
     parser.add_argument('--get-kernels', action='store_true', help='')
     parser.add_argument('--get-learning-curves', action='store_true', help='')
+    parser.add_argument('--get-consensus', action='store_true', help='')
     parser.add_argument('--names', nargs="+", help='', default=[])
 
     args = parser.parse_args()
@@ -698,6 +814,9 @@ def main():
 
     if args.get_learning_curves:
         dump_kernel_scores(args.scratch, names=args.names)
+
+    if args.get_consensus:
+        dump_consensus(args.scratch, 4096)
 
     return
 
