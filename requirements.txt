@@ -5,3 +5,5 @@ rmsd
 pandas
 git+git://github.com/qmlcode/qml@develop
 jupyter
+xlrd
+numba
